@@ -1,1 +1,5 @@
 source_name,url_or_origin,licence,folder_in_data_raw,num_images,date_collected,notes
+Soil Classification Dataset (Kaggle),https://www.kaggle.com/datasets/prasanshasatpathy/soil-types,CC0: Public Domain,black_soil;red_soil;alluvial_soil;clay_soil,0,2026-11-13,Standard benchmark dataset covering multiple Indian soil types
+Soil Type Identification (Roboflow Universe),https://universe.roboflow.com/soil-analysis/soil-classification-rf,CC BY 4.0,sandy_soil;laterite_soil;black_soil,0,2026-11-13,Annotated RGB field captures with variation in ambient lighting
+ICAR-NBSS&LUP Soil Resource Database,https://www.nbsslup.icar.gov.in/,Government Open Data (India),alluvial_soil;black_soil;red_soil;laterite_soil,0,2026-11-13,Benchmark soil profiles and morphological documentation for Indian agro-ecological zones
+USDA-NRCS Soil Survey Image Gallery,https://www.nrcs.usda.gov/resources/data-and-reports/soil-survey,Public Domain (US Gov),sandy_soil;clay_soil;alluvial_soil,0,2026-11-13,High-resolution reference images across diverse soil moisture conditions

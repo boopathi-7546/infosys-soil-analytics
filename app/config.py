@@ -4,8 +4,10 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# PostgreSQL is the default; set DATABASE_URL in .env to override
 DATABASE_URL = os.getenv(
-    "DATABASE_URL", "sqlite:///./soil.db"
+    "DATABASE_URL", "postgresql+psycopg2://soil:soil@localhost:5432/soildb"
 )
 UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "uploads"))
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "10"))

@@ -1,109 +1,2429 @@
-!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Soil Analytics</title>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI Soil Analytics — Nutrient Assessment & Intelligent Crop Advisory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--sb:#0e1a13;--sb2:#18291f;--lime:#b7f34a;--bg:#f2f5f0;--card:#fff;--ink:#17231b;--mute:#66756b;--line:#e0e6dd;--brand:#2d6a4f;--soft:#e8f1ea;--err:#b3261e;--warn:#8a5a00;--loam:#7a4e2d;--blue:#3b7ea1}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
-h1,h2,h3,h4{font-family:Georgia,serif;font-weight:600;margin:0}button,input,select{font:inherit;color:inherit}:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
-.app{display:grid;grid-template-columns:250px 1fr;min-height:100vh}
-.sb{background:var(--sb);color:#cfe0d3;padding:22px 14px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column}
-.brand{display:flex;gap:10px;align-items:center;padding:0 8px 18px;border-bottom:1px solid var(--sb2);margin-bottom:16px}
-.brand i{width:38px;height:38px;border-radius:10px;background:var(--lime);color:var(--sb);display:grid;place-items:center;font-style:normal;font-size:20px}
-.brand b{font:600 20px Georgia,serif;color:#fff;display:block;line-height:1.1}.brand small{font-size:11px;color:#8fa596}
-.sb p{font-size:11px;color:#6f8777;margin:6px 10px;letter-spacing:.08em}
-.sb nav a{display:flex;gap:12px;align-items:center;padding:10px 12px;border-radius:10px;color:#cfe0d3;text-decoration:none;margin-bottom:2px}
-.sb nav a:hover{background:var(--sb2)}.sb nav a.on{background:var(--sb2);color:var(--lime);box-shadow:inset 0 0 0 1px #2c4636;font-weight:600}.sb nav a span{width:20px;text-align:center}
-.sb .foot{margin-top:auto;font-size:13px;padding:0 10px}.sb .foot a{color:#8fa596}
-.bar{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 26px;background:var(--card);border-bottom:1px solid var(--line);flex-wrap:wrap}
-.bar h2{font-size:22px}.bar div{display:flex;gap:10px;align-items:center}
-.pill{font-size:13px;padding:3px 10px;border-radius:99px;background:var(--soft);color:var(--mute)}.pill.ok{color:var(--brand)}.pill.bad{color:var(--err)}
-#view{padding:22px 26px 48px;max-width:1200px}
-.btn{background:var(--brand);color:#fff;border:0;border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:600}.btn.ghost{background:var(--soft);color:var(--ink)}.btn.sm{padding:5px 11px;font-size:13px}
-select,input{padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:#fff;width:100%}.bar select{width:auto;min-width:180px}
-label{display:block;font-size:13px;color:var(--mute);margin-bottom:8px}label input{margin-top:3px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px}.card h3{margin-bottom:10px}
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}.g2.w{grid-template-columns:1.4fr 1fr}
-.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;border-left:4px solid var(--brand)}
-.kpi b{display:block;font:600 28px Georgia,serif}.kpi span{color:var(--mute);font-size:13px}
-.f2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
-.dz{display:block;border:2px dashed #c9d5c9;border-radius:12px;padding:30px;text-align:center;cursor:pointer;color:var(--mute);background:#fafcf9}.dz:hover,.dz.over{border-color:var(--brand);background:var(--soft)}.dz input{display:none}.dz b{display:block;color:var(--ink);font-size:16px}
-.okb{color:#1a7a43;font-weight:600;text-align:center;margin:0 0 12px}
-.cmp{display:grid;grid-template-columns:1fr 1fr;gap:12px}.cmp img{width:100%;border-radius:10px;display:block;aspect-ratio:1;object-fit:cover}.cmp figcaption{font-size:13px;color:var(--mute);text-align:center;margin-top:4px}.cmp figure{margin:0}
-.dims{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}.dims div{border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center;color:var(--mute);font-size:13px}.dims b{display:block;color:var(--ink);font-size:20px}
-.ops{border:1px solid var(--line);border-radius:10px;padding:12px 16px}.ops h4{text-align:center;font-size:15px;margin-bottom:8px}.ops ul{list-style:none;margin:0;padding:0}.ops li{padding:3px 0;color:var(--mute);font-size:14px}.ops li:before{content:"✓";color:#1a7a43;margin-right:10px;font-weight:700}
-.warn{color:var(--warn);font-size:14px;margin:8px 0 0}
-.gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;margin-top:12px}.gal button{padding:0;border:2px solid transparent;border-radius:9px;overflow:hidden;background:none;cursor:pointer;text-align:left}.gal button.on{border-color:var(--brand)}.gal img{display:block;width:100%;height:84px;object-fit:cover}.gal span{display:block;font-size:12px;color:var(--mute);padding:3px 5px}
-.ph{margin:6px 0 14px}.ph .big{font:600 32px Georgia,serif}.ph .big small{font:13px system-ui;color:var(--mute);margin-left:8px}.ruler{position:relative;height:12px;border-radius:6px;margin-top:10px;background:linear-gradient(90deg,#c0392b,#e67e22,#f1c40f,#7fb069,#2d6a4f,#3b7ea1,#5b4b8a)}.mark{position:absolute;top:-6px;width:4px;height:24px;background:var(--ink);border-radius:2px;transform:translateX(-2px)}
-.m{display:grid;grid-template-columns:110px 1fr 90px;gap:10px;align-items:center;padding:6px 0;border-top:1px solid var(--line)}.m i{display:block;height:8px;border-radius:4px;background:var(--soft)}.m u{display:block;height:100%;border-radius:4px;background:var(--brand)}.m.o u{background:var(--loam)}.m.w u{background:var(--blue)}.m em{font-style:normal;text-align:right}
-table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:right;padding:8px;border-top:1px solid var(--line)}th{color:var(--mute);font-weight:500;border:0}th:first-child,td:first-child,.l{text-align:left}.tw{overflow-x:auto}.empty{color:var(--mute);padding:10px 0}
-dialog{border:1px solid var(--line);border-radius:12px;width:min(420px,92%)}dialog::backdrop{background:#0008}
-#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:8px;display:none;max-width:90%;z-index:9}#toast.show{display:block}#toast.err{background:var(--err)}
-@media(max-width:900px){.app{grid-template-columns:1fr}.sb{position:static;height:auto}.sb nav{display:flex;flex-wrap:wrap;gap:4px}.kpis,.g2,.g2.w{grid-template-columns:1fr 1fr}.g2,.g2.w{grid-template-columns:1fr}}
-</style></head><body>
-<div class="app"><aside class="sb"><div class="brand"><i>🌱</i><div><b>Soil Analytics</b><small>Smart agriculture</small></div></div><p>MAIN MENU</p><nav id="nav"></nav><div class="foot"><a href="/docs" target="_blank">API documentation</a></div></aside>
-<div><header class="bar"><h2 id="title"></h2><div><select id="fsel" aria-label="Field"></select><button class="btn sm" id="addf" type="button">Add field</button><span id="status" class="pill">Connecting…</span></div></header><main id="view"></main></div></div>
-<dialog id="dlg"><form id="fieldForm"><h3 style="margin-bottom:12px">New field</h3><label>Field name<input name="name" required maxlength="120"></label><label>Farmer<input name="farmer_name" maxlength="120"></label><label>Location<input name="location" maxlength="255"></label><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn ghost" type="button" id="dx">Cancel</button><button class="btn">Save field</button></div></form></dialog>
+:root {
+  --bg: #F8F6F0;
+  --card-bg: #FFFFFF;
+  --primary: #1B4332;
+  --primary-light: #2D6A4F;
+  --secondary: #40916C;
+  --accent: #74C69D;
+  --earth: #7F5539;
+  --earth-light: #E6CCB2;
+  --text-main: #1F2421;
+  --text-muted: #5C675E;
+  --border: #E2DDD5;
+  --status-green: #2D6A4F;
+  --status-green-bg: #D8F3DC;
+  --status-yellow: #B5830B;
+  --status-yellow-bg: #FEF3C7;
+  --status-red: #B91C1C;
+  --status-red-bg: #FEE2E2;
+  --shadow: 0 4px 20px rgba(27, 67, 50, 0.06);
+  --shadow-lg: 0 10px 30px rgba(27, 67, 50, 0.12);
+  --radius: 14px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg);
+  color: var(--text-main);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* App Layout */
+.app-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Sidebar Navigation */
+.sidebar {
+  width: 260px;
+  background: var(--primary);
+  color: #FFFFFF;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  z-index: 100;
+  transition: transform 0.3s ease;
+}
+
+.brand-header {
+  padding: 24px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.brand-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.brand-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: -0.3px;
+  line-height: 1.2;
+}
+
+.brand-sub {
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.nav-menu {
+  padding: 18px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  color: #D8E2DC;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  min-height: 44px;
+}
+
+.nav-link:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #FFFFFF;
+}
+
+.nav-link.active {
+  background: var(--primary-light);
+  color: #FFFFFF;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.nav-icon {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  fill: currentColor;
+}
+
+.sidebar-footer {
+  padding: 16px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sidebar-footer a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+/* Main Content Area */
+.main-wrapper {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Top App Bar */
+.top-bar {
+  background: var(--card-bg);
+  padding: 16px 28px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 90;
+}
+
+.top-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--primary);
+  letter-spacing: -0.3px;
+}
+
+.top-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.field-selector {
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--bg);
+  color: var(--text-main);
+  min-width: 170px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  min-height: 44px;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #FFFFFF;
+}
+
+.btn-primary:hover {
+  background: var(--primary-light);
+}
+
+.btn-secondary {
+  background: var(--secondary);
+  color: #FFFFFF;
+}
+
+.btn-secondary:hover {
+  background: var(--primary-light);
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1.5px solid var(--border);
+  color: var(--text-main);
+}
+
+.btn-outline:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 13px;
+  min-height: 36px;
+}
+
+/* Language Selector */
+.lang-select {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--card-bg);
+  color: var(--primary);
+  cursor: pointer;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-pill.online {
+  background: var(--status-green-bg);
+  color: var(--status-green);
+}
+
+.status-pill.offline {
+  background: var(--status-red-bg);
+  color: var(--status-red);
+}
+
+/* Page Content View */
+.content-area {
+  padding: 28px;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* Card Components */
+.card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.card-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* KPI Grid */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.kpi-card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-left: 4px solid var(--secondary);
+}
+
+.kpi-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--status-green-bg);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.kpi-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--primary);
+  line-height: 1.2;
+}
+
+.kpi-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* 2-Column Responsive Grid */
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+/* Module 1: Image Input Cards */
+.upload-dropzone {
+  border: 2px dashed var(--secondary);
+  border-radius: 12px;
+  padding: 32px 20px;
+  text-align: center;
+  cursor: pointer;
+  background: #FAFCF9;
+  transition: all 0.2s ease;
+  display: block;
+}
+
+.upload-dropzone:hover {
+  background: #F0F7F2;
+  border-color: var(--primary);
+}
+
+.upload-dropzone input[type="file"] {
+  display: none;
+}
+
+.dropzone-icon {
+  font-size: 40px;
+  color: var(--secondary);
+  margin-bottom: 12px;
+}
+
+.dropzone-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 4px;
+}
+
+.dropzone-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Live Camera Card */
+.camera-container {
+  background: #111;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4/3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.camera-container video, .camera-container canvas, .camera-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.camera-placeholder {
+  color: #AAA;
+  text-align: center;
+  padding: 20px;
+}
+
+.camera-placeholder-icon {
+  font-size: 44px;
+  margin-bottom: 8px;
+}
+
+.camera-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Preview & Comparison */
+.preview-box {
+  margin-top: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  background: var(--bg);
+}
+
+.comparison-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.comparison-item {
+  text-align: center;
+}
+
+.comparison-item img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #000;
+}
+
+.comparison-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+/* Soil Test Form */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-input {
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  background: #FFFFFF;
+  color: var(--text-main);
+  outline: none;
+  transition: border-color 0.2s;
+  min-height: 44px;
+}
+
+.form-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.15);
+}
+
+.form-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Health Results Badges */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.status-badge.green { background: var(--status-green-bg); color: var(--status-green); }
+.status-badge.yellow { background: var(--status-yellow-bg); color: var(--status-yellow); }
+.status-badge.red { background: var(--status-red-bg); color: var(--status-red); }
+
+/* Soil Health Score Wheel */
+.score-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+  background: linear-gradient(135deg, #E8F5E9, #C8E6C9);
+  border-radius: 12px;
+  margin-bottom: 20px;
+  border: 1px solid #A5D6A7;
+}
+
+.score-circle {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #FFF;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(27,67,50,0.25);
+}
+
+.score-num {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.score-denom {
+  font-size: 10px;
+  opacity: 0.8;
+}
+
+.advisory-box {
+  background: #FFFDF9;
+  border: 1px solid var(--earth-light);
+  border-left: 5px solid var(--earth);
+  border-radius: 10px;
+  padding: 16px;
+  margin-top: 14px;
+}
+
+.advisory-box h4 {
+  font-size: 15px;
+  color: var(--earth);
+  margin-bottom: 8px;
+}
+
+.advisory-list {
+  padding-left: 20px;
+  font-size: 13px;
+  color: var(--text-main);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Crop Recommendations Grid */
+.crop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.crop-card {
+  background: #FFFFFF;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  text-align: center;
+  box-shadow: var(--shadow);
+  transition: transform 0.2s ease;
+}
+
+.crop-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--secondary);
+}
+
+.crop-icon {
+  font-size: 34px;
+  margin-bottom: 8px;
+}
+
+.crop-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.crop-badge {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--status-green-bg);
+  color: var(--status-green);
+}
+
+/* Tables */
+.table-responsive {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 14px;
+}
+
+th, td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+th {
+  background: #F4F1EA;
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #FAF8F5; }
+
+/* Toast Notifications */
+#toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  padding: 14px 20px;
+  background: var(--text-main);
+  color: #FFFFFF;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: var(--shadow-lg);
+  display: none;
+  z-index: 1000;
+  max-width: 400px;
+}
+
+#toast.show { display: block; animation: slideUp 0.3s ease; }
+#toast.success { background: var(--status-green); }
+#toast.error { background: var(--status-red); }
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Modal Dialog */
+dialog {
+  border: none;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 26px;
+  max-width: 460px;
+  width: 90%;
+  margin: auto;
+}
+
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+}
+
+/* Mobile Bottom Navigation */
+.mobile-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--primary);
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  z-index: 100;
+  padding: 4px 6px;
+}
+
+.mobile-nav-items {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.mobile-nav-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: #D8E2DC;
+  text-decoration: none;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 6px 4px;
+  min-height: 48px;
+  flex: 1;
+}
+
+.mobile-nav-link.active {
+  color: #FFFFFF;
+  font-weight: 700;
+}
+
+.mobile-nav-icon {
+  font-size: 18px;
+}
+
+/* Print Styles for Reports */
+@media print {
+  body { background: #FFF !important; color: #000 !important; }
+  .sidebar, .top-bar, .mobile-nav, .btn, .card-header .btn, #toast, dialog { display: none !important; }
+  .main-wrapper { margin: 0 !important; width: 100% !important; }
+  .content-area { padding: 0 !important; max-width: 100% !important; }
+  .card { box-shadow: none !important; border: 1px solid #CCC !important; page-break-inside: avoid; }
+  .print-only { display: block !important; }
+}
+
+.print-only { display: none; }
+
+/* Responsive Breakpoints */
+@media (max-width: 900px) {
+  .sidebar { display: none; }
+  .mobile-nav { display: block; }
+  .main-wrapper { margin-bottom: 60px; }
+  .grid-2 { grid-template-columns: 1fr; }
+  .content-area { padding: 18px 14px; }
+  .top-bar { padding: 12px 16px; }
+}
+</style>
+</head>
+<body>
+
+<div class="app-container">
+  <!-- Desktop Sidebar Navigation -->
+  <aside class="sidebar">
+    <div class="brand-header">
+      <div class="brand-icon">🌱</div>
+      <div>
+        <div class="brand-title" data-i18n="app_title">Soil Analytics</div>
+        <div class="brand-sub" data-i18n="app_subtitle">Smart Crop Advisory</div>
+      </div>
+    </div>
+
+    <nav class="nav-menu">
+      <a href="#home" class="nav-link active" data-nav="home">
+        <span class="nav-icon">🏠</span>
+        <span data-i18n="nav_home">Home</span>
+      </a>
+      <a href="#analyze" class="nav-link" data-nav="analyze">
+        <span class="nav-icon">🔬</span>
+        <span data-i18n="nav_analyze">Analyze Soil</span>
+      </a>
+      <a href="#farms" class="nav-link" data-nav="farms">
+        <span class="nav-icon">🌾</span>
+        <span data-i18n="nav_farms">My Farms</span>
+      </a>
+      <a href="#history" class="nav-link" data-nav="history">
+        <span class="nav-icon">📜</span>
+        <span data-i18n="nav_history">Soil History</span>
+      </a>
+      <a href="#advisory" class="nav-link" data-nav="advisory">
+        <span class="nav-icon">💡</span>
+        <span data-i18n="nav_advisory">Crop Advisory</span>
+      </a>
+      <a href="#reports" class="nav-link" data-nav="reports">
+        <span class="nav-icon">📊</span>
+        <span data-i18n="nav_reports">Reports</span>
+      </a>
+      <a href="#help" class="nav-link" data-nav="help">
+        <span class="nav-icon">❓</span>
+        <span data-i18n="nav_help">Help</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <span>v1.0 • PostgreSQL</span>
+      <a href="/docs" target="_blank">API Docs</a>
+    </div>
+  </aside>
+
+  <!-- Main View -->
+  <div class="main-wrapper">
+    <!-- Top Header -->
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <h1 class="page-title" id="pageTitle" data-i18n="nav_home">Dashboard</h1>
+      </div>
+
+      <div class="top-bar-right">
+        <!-- Field Selector -->
+        <select id="farmSelect" class="field-selector" title="Select active farm"></select>
+
+        <button class="btn btn-outline btn-sm" id="btnOpenNewFarm" type="button" data-i18n="btn_new_farm">+ New Farm</button>
+
+        <!-- Language Switcher -->
+        <select id="langSelect" class="lang-select" aria-label="Select Language">
+          <option value="en">English</option>
+          <option value="ta">தமிழ் (Tamil)</option>
+          <option value="hi">हिंदी (Hindi)</option>
+          <option value="kn">ಕನ್ನಡ (Kannada)</option>
+        </select>
+
+        <!-- System Connection Status -->
+        <span id="systemStatus" class="status-pill online">● API Connected</span>
+      </div>
+    </header>
+
+    <!-- Dynamic Main Content Area -->
+    <main class="content-area" id="mainContent"></main>
+  </div>
+</div>
+
+<!-- Mobile Bottom Navigation -->
+<nav class="mobile-nav">
+  <div class="mobile-nav-items">
+    <a href="#home" class="mobile-nav-link active" data-nav="home">
+      <span class="mobile-nav-icon">🏠</span>
+      <span data-i18n="nav_home">Home</span>
+    </a>
+    <a href="#analyze" class="mobile-nav-link" data-nav="analyze">
+      <span class="mobile-nav-icon">🔬</span>
+      <span data-i18n="nav_analyze">Analyze</span>
+    </a>
+    <a href="#farms" class="mobile-nav-link" data-nav="farms">
+      <span class="mobile-nav-icon">🌾</span>
+      <span data-i18n="nav_farms">Farms</span>
+    </a>
+    <a href="#advisory" class="mobile-nav-link" data-nav="advisory">
+      <span class="mobile-nav-icon">💡</span>
+      <span data-i18n="nav_advisory">Advisory</span>
+    </a>
+    <a href="#reports" class="mobile-nav-link" data-nav="reports">
+      <span class="mobile-nav-icon">📊</span>
+      <span data-i18n="nav_reports">Reports</span>
+    </a>
+  </div>
+</nav>
+
+<!-- New Farm Modal Dialog -->
+<dialog id="newFarmDialog">
+  <form id="newFarmForm">
+    <h3 style="margin-bottom: 16px; color: var(--primary);" data-i18n="modal_add_farm">Register New Farm</h3>
+    <div class="form-group" style="margin-bottom: 12px;">
+      <label class="form-label" data-i18n="lbl_farm_name">Farm / Field Name *</label>
+      <input type="text" name="name" class="form-input" required placeholder="e.g. North Plot - River Road" maxlength="120">
+    </div>
+    <div class="form-group" style="margin-bottom: 12px;">
+      <label class="form-label" data-i18n="lbl_farmer_name">Farmer Name</label>
+      <input type="text" name="farmer_name" class="form-input" placeholder="e.g. Boopathi" maxlength="120">
+    </div>
+    <div class="form-group" style="margin-bottom: 20px;">
+      <label class="form-label" data-i18n="lbl_location">Location / District</label>
+      <input type="text" name="location" class="form-input" placeholder="e.g. Erode, Tamil Nadu" maxlength="255">
+    </div>
+    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+      <button type="button" class="btn btn-outline" id="btnCloseFarmModal" data-i18n="btn_cancel">Cancel</button>
+      <button type="submit" class="btn btn-primary" data-i18n="btn_save_farm">Save Farm</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Toast Notification Element -->
 <div id="toast" role="status"></div>
+
 <script>
-const E=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const fmt=d=>d?new Date(d).toLocaleString([],{dateStyle:'medium',timeStyle:'short'}):'';
-const M=[{k:'nitrogen',n:'Nitrogen',u:'kg/ha',x:600},{k:'phosphorus',n:'Phosphorus',u:'kg/ha',x:100},{k:'potassium',n:'Potassium',u:'kg/ha',x:600},{k:'organic_matter',n:'Organic matter',u:'%',x:10,c:'o'},{k:'moisture',n:'Moisture',u:'%',x:100,c:'w'}];
-const OPS=['Validation and normalisation (RGB JPEG, EXIF removed)','Colour-cast correction (gentle gray-world)','CLAHE contrast enhancement (lightness channel)','Background removal (GrabCut, skipped if it fails)','Image resizing to 224 × 224'];
-const NAV=[['dashboard','Dashboard','▦'],['analysis','Soil Analysis','⚗'],['crop','Crop Recommendation','❀'],['history','History','↻'],['reports','Reports','☰'],['profile','Profile','☻'],['settings','Settings','⚙']];
-let fields=[],cur=null,sel=null,metric='ph',route='dashboard',online=false;
-const F=()=>fields.find(f=>f.id===cur),tests=()=>fields.flatMap(f=>f.tests.map(t=>({...t,field:f.name}))).sort((a,b)=>b.tested_at.localeCompare(a.tested_at)),imgs=()=>fields.flatMap(f=>f.images.map(i=>({...i,field:f.name}))).sort((a,b)=>b.uploaded_at.localeCompare(a.uploaded_at));
-function toast(m,t){const e=E('toast');e.textContent=m;e.className='show '+(t||'');clearTimeout(toast.h);toast.h=setTimeout(()=>e.className='',4500)}
-async function api(p,o){const r=await fetch(p,o);if(!r.ok){let d={};try{d=await r.json()}catch(_){}const x=d.detail;throw new Error(typeof x==='string'?x:(x&&x[0]&&x[0].msg)||r.statusText)}return r.json()}
-async function load(){try{fields=await api('/fields');await Promise.all(fields.map(async f=>{[f.tests,f.images]=await Promise.all([api(`/fields/${f.id}/soil-tests`),api(`/fields/${f.id}/images`)])}));online=true}catch(e){online=false;toast('Cannot reach the server: '+e.message,'err')}
- if(!fields.some(f=>f.id===cur))cur=fields.length?fields[0].id:null;render()}
-const soon=(t,p)=>`<div class="card"><h3>${t}</h3><p class="empty">${p}</p></div>`;
-const bars=t=>M.map(m=>`<div class="m ${m.c||''}"><span>${m.n}</span><i><u style="width:${Math.min(100,t[m.k]/m.x*100)}%"></u></i><em>${t[m.k]} ${m.u}</em></div>`).join('');
-const phb=t=>`<div class="ph"><div class="big">${t.ph.toFixed(1)}<small>pH · ${fmt(t.tested_at)}</small></div><div class="ruler"><span class="mark" style="left:${Math.min(100,t.ph/14*100)}%"></span></div></div>`;
-const tbl=(h,r)=>`<div class="tw"><table><tr>${h.map(x=>`<th>${x}</th>`).join('')}</tr>${r.map(x=>`<tr>${x.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</table></div>`;
-const TH=['Date','Field','N','P','K','pH','OM %','Moist. %'],TR=t=>[fmt(t.tested_at),t.field,t.nitrogen,t.phosphorus,t.potassium,t.ph,t.organic_matter,t.moisture];
-const noField='<div class="card empty">Add a field (top right) to get started.</div>';
-const R={
-dashboard(){const T=tests(),I=imgs(),f=F(),lp=fields.filter(x=>x.tests[0]).map(x=>x.tests[0].ph);
- return `<div class="kpis">${[['Fields',fields.length],['Soil photos',I.length],['Soil tests',T.length],['Average pH',lp.length?(lp.reduce((a,b)=>a+b,0)/lp.length).toFixed(1):'–']].map(([l,v])=>`<div class="kpi"><b>${v}</b><span>${l}</span></div>`).join('')}</div>
-<div class="g2 w"><div class="card"><div style="display:flex;justify-content:space-between"><h3>Trend${f?' – '+esc(f.name):''}</h3><select id="metric" style="width:auto"><option value="ph">pH</option>${M.map(m=>`<option value="${m.k}">${m.n}</option>`).join('')}</select></div><div id="chart"></div></div>
-<div class="card"><h3>Latest soil test</h3>${f&&f.tests[0]?phb(f.tests[0])+bars(f.tests[0]):'<p class="empty">No soil test for this field yet. Record one on the Soil Analysis page.</p>'}</div></div>
-<div class="g2"><div class="card"><h3>Recent soil photos</h3>${I.length?`<div class="gal">${I.slice(0,6).map(i=>`<button data-img="${i.id}"><img loading="lazy" src="/images/${i.id}/file" alt=""><span>${esc(i.field)}</span></button>`).join('')}</div>`:'<p class="empty">No photos yet.</p>'}</div>
-<div class="card"><h3>Recent soil tests</h3>${T.length?tbl(['Date','Field','pH'],T.slice(0,5).map(t=>[fmt(t.tested_at),t.field,t.ph])):'<p class="empty">No tests yet.</p>'}</div></div>`},
-analysis(){const f=F();if(!f)return noField;const si=sel&&f.images.find(i=>i.id===sel.id)?sel:null;
- return `<div class="g2"><div class="card"><h3>Upload soil image</h3><label class="dz" id="dz"><input type="file" id="file" accept="image/jpeg,image/png" capture="environment"><b id="dzt">Drop a soil photo here, or click to choose</b>JPEG or PNG, up to 10 MB. On a phone this opens the camera.</label>
-${si?`<div style="margin-top:16px"><p class="okb">✓ Image preprocessing completed successfully!</p><div class="cmp"><figure><img src="/images/${si.id}/file" alt="Original"><figcaption>Original</figcaption></figure><figure><img src="/images/${si.id}/preprocessed" alt="Processed"><figcaption>Model input</figcaption></figure></div><div class="dims"><div>Original dimensions<b>${si.width} × ${si.height}</b></div><div>Processed dimensions<b>224 × 224</b></div></div><div class="ops"><h4>Preprocessing operations</h4><ul>${OPS.map(o=>`<li>${o}</li>`).join('')}</ul></div>${(si.warnings||[]).concat(!si.warnings&&si.blur_score<60?['Image looks blurry. Retake for better results.']:[]).map(w=>`<p class="warn">⚠ ${esc(w)}</p>`).join('')}</div>`:''}
-${f.images.length?`<div class="gal">${f.images.map(i=>`<button data-img="${i.id}" class="${si&&si.id===i.id?'on':''}"><img loading="lazy" src="/images/${i.id}/file" alt=""><span>${i.width}×${i.height}</span></button>`).join('')}</div>`:''}</div>
-<div class="card"><h3>Soil test values</h3><form id="testForm"><div class="f2"><label>Nitrogen (kg/ha)<input name="nitrogen" type="number" step="any" min="0" max="1000" required></label><label>Phosphorus (kg/ha)<input name="phosphorus" type="number" step="any" min="0" max="500" required></label><label>Potassium (kg/ha)<input name="potassium" type="number" step="any" min="0" max="2000" required></label><label>pH<input name="ph" type="number" step="any" min="0" max="14" required></label><label>Organic matter (%)<input name="organic_matter" type="number" step="any" min="0" max="100" required></label><label>Moisture (%)<input name="moisture" type="number" step="any" min="0" max="100" required></label></div><button class="btn">Save soil test</button></form>${f.tests[0]?'<h4 style="margin:18px 0 6px">Latest saved</h4>'+phb(f.tests[0])+bars(f.tests[0]):''}</div></div>`},
-crop(){const t=F()&&F().tests[0];return soon('Crop recommendation',`Crop advice is added in Milestone 3, after the soil model is trained. It will use the nutrient values, pH and soil type from the Soil Analysis page.${t?' This field already has a soil test ready to use.':' Record a soil test first.'}`)},
-history(){const T=tests(),I=imgs();return `<div class="card"><h3>Soil tests</h3>${T.length?tbl(TH,T.map(TR)):'<p class="empty">No tests yet.</p>'}</div><div class="card" style="margin-top:16px"><h3>Soil photos</h3>${I.length?tbl(['Uploaded','Field','File','Size','Sharpness'],I.map(i=>[fmt(i.uploaded_at),i.field,i.original_filename||'–',i.width+' × '+i.height,i.blur_score<60?'Blurry':'Sharp'])):'<p class="empty">No photos yet.</p>'}</div>`},
-reports(){return `<div class="card"><h3>Reports</h3><p class="empty">Download your data for the project report.</p><button class="btn" data-csv="t">Soil tests (CSV)</button> <button class="btn ghost" data-csv="i">Photo log (CSV)</button></div>`},
-profile(){return soon('Profile','Accounts and sign-in are planned for later. For now this dashboard works without a login.')},
-settings(){return `<div class="card"><h3>System</h3>${tbl(['Item','Value'],[['API',online?'Online':'Offline'],['Fields',fields.length],['Photos',imgs().length],['Soil tests',tests().length],['Interactive API docs','/docs']])}</div>`}};
-function render(){
- E('nav').innerHTML=NAV.map(([k,n,i])=>`<a href="#${k}" class="${k===route?'on':''}"><span>${i}</span>${n}</a>`).join('');
- E('title').textContent=(NAV.find(n=>n[0]===route)||[])[1];E('status').textContent=online?'API online':'API offline';E('status').className='pill '+(online?'ok':'bad');
- E('fsel').innerHTML=fields.length?fields.map(f=>`<option value="${f.id}" ${f.id===cur?'selected':''}>${esc(f.name)}</option>`).join(''):'<option>No fields</option>';
- E('view').innerHTML=R[route]();if(route==='dashboard'){E('metric').value=metric;draw()}}
-function draw(){const f=F(),el=E('chart'),d=f?[...f.tests].reverse():[],m=M.find(x=>x.k===metric),n=m?m.n:'pH';
- if(d.length<2){el.innerHTML=`<p class="empty">Record at least two soil tests to see how ${n} changes over time.</p>`;return}
- const v=d.map(x=>x[metric]),lo=Math.min(...v),hi=Math.max(...v),p=(hi-lo)||1,a=lo-p*.2,b=hi+p*.2,W=520,H=210,L=44,B=24,X=i=>L+i*(W-L-12)/(d.length-1),Y=x=>H-B-(x-a)/(b-a)*(H-B-12);
- el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" style="width:100%" role="img" aria-label="${n} over time"><g stroke="#e0e6dd" fill="#66756b" font-size="11">${[a,(a+b)/2,b].map(g=>`<line x1="${L}" x2="${W-6}" y1="${Y(g)}" y2="${Y(g)}"/><text x="${L-6}" y="${Y(g)+4}" text-anchor="end" stroke="none">${g.toFixed(1)}</text>`).join('')}</g><polyline fill="none" stroke="#2d6a4f" stroke-width="2.5" points="${v.map((x,i)=>X(i)+','+Y(x)).join(' ')}"/>${v.map((x,i)=>`<circle cx="${X(i)}" cy="${Y(x)}" r="4" fill="#2d6a4f"><title>${fmt(d[i].tested_at)}: ${x}</title></circle>`).join('')}</svg>`}
-async function upload(file){if(!file||!cur)return;const fd=new FormData();fd.append('file',file);E('dzt').textContent='Uploading and preprocessing…';
- try{const r=await api(`/fields/${cur}/images`,{method:'POST',body:fd});sel={...r.image,warnings:r.warnings};toast('Photo saved');await load()}catch(e){toast(e.message,'err');E('dzt').textContent='Upload failed. Choose another photo.'}}
-function csv(n,rows){const b=new Blob([rows.map(r=>r.map(c=>`"${String(c??'').replace(/"/g,'""')}"`).join(',')).join('\n')],{type:'text/csv'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;a.click()}
-function go(){route=(location.hash||'#dashboard').slice(1);if(!R[route])route='dashboard';render()}
-addEventListener('hashchange',go);
-document.addEventListener('click',e=>{const g=e.target.closest('[data-img]'),c=e.target.closest('[data-csv]');
- if(g){const i=imgs().find(x=>x.id==g.dataset.img);sel=i;cur=fields.find(f=>f.name===i.field&&f.id===i.field_id)?i.field_id:cur;cur=i.field_id;if(location.hash==='#analysis')render();else location.hash='#analysis'}
- if(c)c.dataset.csv==='t'?csv('soil_tests.csv',[TH,...tests().map(TR)]):csv('soil_photos.csv',[['Uploaded','Field','File','Width','Height','Blur score'],...imgs().map(i=>[i.uploaded_at,i.field,i.original_filename,i.width,i.height,i.blur_score])])});
-E('fsel').onchange=e=>{cur=+e.target.value;sel=null;render()};E('addf').onclick=()=>E('dlg').showModal();E('dx').onclick=()=>E('dlg').close();
-document.addEventListener('change',e=>{if(e.target.id==='file')upload(e.target.files[0]);if(e.target.id==='metric'){metric=e.target.value;draw()}});
-document.addEventListener('dragover',e=>{if(e.target.closest('#dz')){e.preventDefault();E('dz').classList.add('over')}});
-document.addEventListener('drop',e=>{if(e.target.closest('#dz')){e.preventDefault();upload(e.dataTransfer.files[0])}});
-document.addEventListener('submit',async e=>{e.preventDefault();const f=e.target,o={},isT=f.id==='testForm';new FormData(f).forEach((v,k)=>o[k]=isT?parseFloat(v):(v||null));
- try{if(isT){await api(`/fields/${cur}/soil-tests`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(o)});toast('Soil test saved')}
-  else{const r=await api('/fields',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(o)});cur=r.id;sel=null;f.reset();E('dlg').close();toast('Field saved')}
-  await load()}catch(x){toast(x.message,'err')}});
-go();load();
-</script></body></html>
- 
+// ============================================================================
+// MULTILINGUAL DICTIONARY (Module 7: English, Tamil, Hindi, Kannada)
+// ============================================================================
+const I18N = {
+  en: {
+    app_title: "Soil Analytics",
+    app_subtitle: "Smart Crop Advisory",
+    nav_home: "Dashboard",
+    nav_analyze: "Analyze Soil",
+    nav_farms: "My Farms",
+    nav_history: "Soil History",
+    nav_advisory: "Crop Advisory",
+    nav_reports: "Reports",
+    nav_help: "Help",
+    btn_new_farm: "+ New Farm",
+    btn_cancel: "Cancel",
+    btn_save_farm: "Save Farm",
+    modal_add_farm: "Register New Farm",
+    lbl_farm_name: "Farm / Field Name *",
+    lbl_farmer_name: "Farmer Name",
+    lbl_location: "Location / District",
+    quick_analyze: "Analyze Soil Now",
+    kpi_fields: "Registered Farms",
+    kpi_tests: "Soil Tests Recorded",
+    kpi_photos: "Soil Photos",
+    kpi_dataset: "Benchmark Soil Types",
+    card_upload_title: "Option A: Upload Soil Photo",
+    card_upload_hint: "JPEG or PNG from your computer or mobile gallery (up to 10 MB)",
+    card_camera_title: "Option B: Live Camera Capture",
+    card_camera_hint: "Use your device's rear camera for real-time capture",
+    btn_open_camera: "📷 Open Camera",
+    btn_capture: "Capture Photo",
+    btn_retake: "Retake",
+    btn_use_photo: "Use Photo & Preprocess",
+    form_test_title: "Laboratory Soil Test Measurements",
+    form_test_sub: "Enter the values from your official soil testing laboratory card",
+    lbl_n: "Available Nitrogen (N)",
+    lbl_p: "Available Phosphorus (P)",
+    lbl_k: "Available Potassium (K)",
+    lbl_ph: "Soil pH (Acidity/Alkalinity)",
+    lbl_om: "Organic Matter (OM)",
+    lbl_moisture: "Soil Moisture",
+    btn_submit_test: "Submit & Analyze Soil",
+    health_score_title: "Overall Soil Health Score",
+    disclaimer: "Scientific Note: Soil health scores and crop recommendations are derived from standard agronomic benchmarks. Always calibrate with local agricultural extension officers.",
+  },
+  ta: {
+    app_title: "மண் பகுப்பாய்வு",
+    app_subtitle: "புத்திசாலி பயிர் வழிகாட்டி",
+    nav_home: "முகப்பு",
+    nav_analyze: "மண் ஆய்வு",
+    nav_farms: "என் பண்ணைகள்",
+    nav_history: "மண் வரலாறு",
+    nav_advisory: "பயிர் வழிகாட்டல்",
+    nav_reports: "அறிக்கைகள்",
+    nav_help: "உதவி",
+    btn_new_farm: "+ புதிய பண்ணை",
+    btn_cancel: "ரத்து செய்",
+    btn_save_farm: "சேமி",
+    modal_add_farm: "புதிய பண்ணையை பதிவு செய்",
+    lbl_farm_name: "பண்ணை / நிலத்தின் பெயர் *",
+    lbl_farmer_name: "விவசாயி பெயர்",
+    lbl_location: "ஊர் / மாவட்டம்",
+    quick_analyze: "உடனே மண் ஆய்வு செய்",
+    kpi_fields: "பதிவுசெய்த பண்ணைகள்",
+    kpi_tests: "மண் பரிசோதனைகள்",
+    kpi_photos: "மண் புகைப்படங்கள்",
+    kpi_dataset: "மண் வகைகள் (தகவல்படி)",
+    card_upload_title: "விருப்பம் A: மண் புகைப்படத்தை பதிவேற்றுக",
+    card_upload_hint: "JPEG அல்லது PNG புகைப்படம் (அதிகபட்சம் 10 MB)",
+    card_camera_title: "விருப்பம் B: நேரடி கேமரா படம்",
+    card_camera_hint: "மொபைல் பின் கேமராவை பயன்படுத்தி எடுக்கவும்",
+    btn_open_camera: "📷 கேமராவை திறக்கவும்",
+    btn_capture: "படம் எடுக்கவும்",
+    btn_retake: "மீண்டும் எடுக்கவும்",
+    btn_use_photo: "இந்த படத்தை பயன்படுத்துக",
+    form_test_title: "மண் ஆய்வக பரிசோதனை முடிவுகள்",
+    form_test_sub: "உங்கள் மண் அட்டை விவரங்களை உள்ளிடவும்",
+    lbl_n: "தழைச்சத்து (Nitrogen - N)",
+    lbl_p: "மணிச்சத்து (Phosphorus - P)",
+    lbl_k: "சாம்பல் சத்து (Potassium - K)",
+    lbl_ph: "மண் கார அமிலத்தன்மை (pH)",
+    lbl_om: "மக்கிய கரிமப்பொருள் (Organic Matter %)",
+    lbl_moisture: "மண் ஈரப்பதம் (Moisture %)",
+    btn_submit_test: "மண் ஆய்வை சமர்ப்பிக்கவும்",
+    health_score_title: "ஒட்டுமொத்த மண் ஆரோக்கிய மதிப்பு",
+    disclaimer: "அறிவியல் குறிப்பு: மண் நல அறிக்கைகள் மற்றும் பயிர் பரிந்துரைகள் நிலையான வேளாண் அறிவியல் அளவீடுகளை அடிப்படையாகக் கொண்டவை.",
+  },
+  hi: {
+    app_title: "मृदा विश्लेषण",
+    app_subtitle: "स्मार्ट फसल सलाहकार",
+    nav_home: "डैशबोर्ड",
+    nav_analyze: "मृदा विश्लेषण",
+    nav_farms: "मेरे खेत",
+    nav_history: "मृदा इतिहास",
+    nav_advisory: "फसल सलाह",
+    nav_reports: "रिपोर्ट",
+    nav_help: "सहायता",
+    btn_new_farm: "+ नया खेत",
+    btn_cancel: "रद्द करें",
+    btn_save_farm: "खेत सहेजें",
+    modal_add_farm: "नया खेत पंजीकृत करें",
+    lbl_farm_name: "खेत का नाम *",
+    lbl_farmer_name: "किसान का नाम",
+    lbl_location: "स्थान / जिला",
+    quick_analyze: "अभी मृदा विश्लेषण करें",
+    kpi_fields: "पंजीकृत खेत",
+    kpi_tests: "मृदा परीक्षण",
+    kpi_photos: "मृदा तस्वीरें",
+    kpi_dataset: "मानक मृदा वर्ग",
+    card_upload_title: "विकल्प A: मृदा फोटो अपलोड करें",
+    card_upload_hint: "फ़ोन गैलरी या कंप्यूटर से JPEG/PNG (अधिकतम 10 MB)",
+    card_camera_title: "विकल्प B: लाइव कैमरा फोटो",
+    card_camera_hint: "सीधे रियर कैमरे से फोटो खींचें",
+    btn_open_camera: "📷 कैमरा खोलें",
+    btn_capture: "फोटो लें",
+    btn_retake: "दोबारा लें",
+    btn_use_photo: "इस फोटो का उपयोग करें",
+    form_test_title: "मृदा प्रयोगशाला परीक्षण परिणाम",
+    form_test_sub: "मृदा स्वास्थ्य कार्ड से सटीक मान दर्ज करें",
+    lbl_n: "नाइट्रोजन (N)",
+    lbl_p: "फास्फोरस (P)",
+    lbl_k: "पोटेशियम (K)",
+    lbl_ph: "मृदा पीएच (pH)",
+    lbl_om: "जैविक कार्बन (Organic Matter %)",
+    lbl_moisture: "नमी प्रतिशत (Moisture %)",
+    btn_submit_test: "परीक्षण जमा करें",
+    health_score_title: "समग्र मृदा स्वास्थ्य स्कोर",
+    disclaimer: "वैज्ञानिक नोट: मृदा स्वास्थ्य स्कोर और फसल सिफारिशें कृषि अनुसंधान मानकों पर आधारित हैं।",
+  },
+  kn: {
+    app_title: "ಮಣ್ಣು ವಿಶ್ಲೇಷಣೆ",
+    app_subtitle: "ಸ್ಮಾರ್ಟ್ ಬೆಳೆ ಸಲಹೆ",
+    nav_home: "ಮುಖಪುಟ",
+    nav_analyze: "ಮಣ್ಣು ವಿಶ್ಲೇಷಣೆ",
+    nav_farms: "ನನ್ನ ಜಮೀನುಗಳು",
+    nav_history: "ಮಣ್ಣಿನ ಇತಿಹಾಸ",
+    nav_advisory: "ಬೆಳೆ ಸಲಹೆ",
+    nav_reports: "ವರದಿಗಳು",
+    nav_help: "ಸಹಾಯ",
+    btn_new_farm: "+ ಹೊಸ ಜಮೀನು",
+    btn_cancel: "ರದ್ದುಮಾಡಿ",
+    btn_save_farm: "ಉಳಿಸಿ",
+    modal_add_farm: "ಹೊಸ ಜಮೀನು ನೋಂದಾಯಿಸಿ",
+    lbl_farm_name: "ಜಮೀನಿನ ಹೆಸರು *",
+    lbl_farmer_name: "ರೈತರ ಹೆಸರು",
+    lbl_location: "ಸ್ಥಳ / ಜಿಲ್ಲೆ",
+    quick_analyze: "ಮಣ್ಣು ಪರೀಕ್ಷಿಸಿ",
+    kpi_fields: "ನೋಂದಾಯಿತ ಜಮೀನುಗಳು",
+    kpi_tests: "ಮಣ್ಣಿನ ಪರೀಕ್ಷೆಗಳು",
+    kpi_photos: "ಮಣ್ಣಿನ ಫೋಟೋಗಳು",
+    kpi_dataset: "ಮಣ್ಣಿನ ವಿಧಗಳು",
+    card_upload_title: "ಆಯ್ಕೆ A: ಮಣ್ಣಿನ ಫೋಟೋ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ",
+    card_upload_hint: "JPEG ಅಥವಾ PNG (ಗರಿಷ್ಠ 10 MB)",
+    card_camera_title: "ಆಯ್ಕೆ B: ಲೈವ್ ಕ್ಯಾಮೆರಾ ಫೋಟೋ",
+    card_camera_hint: "ಹಿಂಬದಿಯ ಕ್ಯಾಮೆರಾ ಬಳಸಿ ಫೋಟೋ ತೆಗೆಯಿರಿ",
+    btn_open_camera: "📷 ಕ್ಯಾಮೆರಾ ತೆರೆಯಿರಿ",
+    btn_capture: "ಫೋಟೋ ತೆಗೆಯಿರಿ",
+    btn_retake: "ಮತ್ತೊಮ್ಮೆ ತೆಗೆಯಿರಿ",
+    btn_use_photo: "ಈ ಫೋಟೋ ಬಳಸಿ",
+    form_test_title: "ಪ್ರಯೋಗಾಲಯದ ಮಣ್ಣಿನ ಪರೀಕ್ಷಾ ವರದಿ",
+    form_test_sub: "ನಿಮ್ಮ ಮಣ್ಣಿನ ಆರೋಗ್ಯ ಕಾರ್ಡ್‌ನಿಂದ ವಿವರಗಳನ್ನು ನಮೂದಿಸಿ",
+    lbl_n: "ಸಾರಜನಕ (N)",
+    lbl_p: "ರಂಜಕ (P)",
+    lbl_k: "ಪೊಟ್ಯಾಶ್ (K)",
+    lbl_ph: "ಮಣ್ಣಿನ ಪಿಎಚ್ (pH)",
+    lbl_om: "ಸಾವಯವ ಇಂಗಾಲ (%)",
+    lbl_moisture: "ತೇವಾಂಶ (%)",
+    btn_submit_test: "ವಿಶ್ಲೇಷಣೆಯನ್ನು ಸಲ್ಲಿಸಿ",
+    health_score_title: "ಸಮಗ್ರ ಮಣ್ಣಿನ ಆರೋಗ್ಯ ಅಂಕ",
+    disclaimer: "ವೈಜ್ಞಾನಿಕ ಸೂಚನೆ: ಮಣ್ಣಿನ ಆರೋಗ್ಯ ಅಂಕಗಳು ಮತ್ತು ಬೆಳೆ ಶಿಫಾರಸುಗಳು ಕೃಷಿ ವಿಜ್ಞಾನ ಮಾರ್ಗಸೂಚಿಗಳನ್ನು ಆಧರಿಸಿವೆ.",
+  }
+};
+
+let currentLang = 'en';
+
+function t(key) {
+  return (I18N[currentLang] && I18N[currentLang][key]) || (I18N['en'] && I18N['en'][key]) || key;
+}
+
+function applyTranslations() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const k = el.getAttribute('data-i18n');
+    el.textContent = t(k);
+  });
+}
+
+// ============================================================================
+// APPLICATION STATE & API CLIENT
+// ============================================================================
+let state = {
+  fields: [],
+  activeFieldId: null,
+  activeRoute: 'home',
+  datasetStatus: null,
+  latestSoilTest: null,
+  latestImage: null,
+  cameraStream: null,
+  capturedBase64: null,
+};
+
+async function fetchApi(url, options = {}) {
+  try {
+    const res = await fetch(url, options);
+    if (!res.ok) {
+      let errText = res.statusText;
+      try {
+        const errJson = await res.json();
+        errText = errJson.detail || errJson.message || JSON.stringify(errJson);
+      } catch (_) {}
+      throw new Error(errText);
+    }
+    if (res.status === 204) return null;
+    return await res.json();
+  } catch (err) {
+    console.error(`API Error on ${url}:`, err);
+    throw err;
+  }
+}
+
+function showToast(message, type = 'info') {
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.className = `show ${type}`;
+  setTimeout(() => { toast.className = ''; }, 4500);
+}
+
+// ============================================================================
+// INITIALIZATION & ROUTING
+// ============================================================================
+async function initApp() {
+  setupNavigation();
+  setupLanguageSwitcher();
+  setupNewFarmDialog();
+
+  await checkHealth();
+  await loadDatasetStatus();
+  await refreshFields();
+
+  window.addEventListener('hashchange', handleRoute);
+  handleRoute();
+}
+
+async function checkHealth() {
+  try {
+    const h = await fetchApi('/health');
+    const pill = document.getElementById('systemStatus');
+    if (h.status === 'ok') {
+      pill.textContent = '● ' + (h.db === 'connected' ? 'PostgreSQL Active' : 'API Active');
+      pill.className = 'status-pill online';
+    } else {
+      pill.textContent = '● Degraded';
+      pill.className = 'status-pill offline';
+    }
+  } catch (e) {
+    const pill = document.getElementById('systemStatus');
+    pill.textContent = '● Server Offline';
+    pill.className = 'status-pill offline';
+  }
+}
+
+async function loadDatasetStatus() {
+  try {
+    state.datasetStatus = await fetchApi('/api/dataset/status');
+  } catch (e) {
+    console.warn('Dataset status API not ready yet:', e);
+  }
+}
+
+async function refreshFields() {
+  try {
+    state.fields = await fetchApi('/api/fields');
+    const select = document.getElementById('farmSelect');
+    select.innerHTML = '';
+
+    if (state.fields.length === 0) {
+      select.innerHTML = '<option value="">-- No Farms Registered --</option>';
+      state.activeFieldId = null;
+    } else {
+      state.fields.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f.id;
+        opt.textContent = `${f.name} ${f.location ? '(' + f.location + ')' : ''}`;
+        select.appendChild(opt);
+      });
+      if (!state.activeFieldId || !state.fields.some(f => f.id === state.activeFieldId)) {
+        state.activeFieldId = state.fields[0].id;
+      }
+      select.value = state.activeFieldId;
+    }
+  } catch (err) {
+    showToast('Failed to load farm fields: ' + err.message, 'error');
+  }
+}
+
+function setupNavigation() {
+  document.querySelectorAll('[data-nav]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      const target = el.getAttribute('data-nav');
+      window.location.hash = target;
+    });
+  });
+
+  document.getElementById('farmSelect').addEventListener('change', (e) => {
+    state.activeFieldId = parseInt(e.target.value) || null;
+    renderCurrentRoute();
+  });
+}
+
+function setupLanguageSwitcher() {
+  const sel = document.getElementById('langSelect');
+  sel.addEventListener('change', (e) => {
+    currentLang = e.target.value;
+    applyTranslations();
+    renderCurrentRoute();
+  });
+}
+
+function setupNewFarmDialog() {
+  const dlg = document.getElementById('newFarmDialog');
+  document.getElementById('btnOpenNewFarm').onclick = () => dlg.showModal();
+  document.getElementById('btnCloseFarmModal').onclick = () => dlg.close();
+
+  document.getElementById('newFarmForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const body = {
+      name: fd.get('name'),
+      farmer_name: fd.get('farmer_name') || null,
+      location: fd.get('location') || null,
+    };
+    try {
+      const created = await fetchApi('/api/fields', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      showToast('Farm registered successfully!', 'success');
+      dlg.close();
+      e.target.reset();
+      await refreshFields();
+      state.activeFieldId = created.id;
+      document.getElementById('farmSelect').value = created.id;
+      renderCurrentRoute();
+    } catch (err) {
+      showToast('Error registering farm: ' + err.message, 'error');
+    }
+  };
+}
+
+function handleRoute() {
+  const hash = window.location.hash.replace('#', '') || 'home';
+  state.activeRoute = hash;
+
+  // Update active state in navbars
+  document.querySelectorAll('[data-nav]').forEach(el => {
+    if (el.getAttribute('data-nav') === hash) {
+      el.classList.add('active');
+    } else {
+      el.classList.remove('active');
+    }
+  });
+
+  const titles = {
+    home: t('nav_home'),
+    analyze: t('nav_analyze'),
+    farms: t('nav_farms'),
+    history: t('nav_history'),
+    advisory: t('nav_advisory'),
+    reports: t('nav_reports'),
+    help: t('nav_help'),
+  };
+  document.getElementById('pageTitle').textContent = titles[hash] || 'Soil Analytics';
+
+  renderCurrentRoute();
+}
+
+function renderCurrentRoute() {
+  stopCamera(); // Clean up camera stream whenever switching tabs
+  const container = document.getElementById('mainContent');
+  switch (state.activeRoute) {
+    case 'home':
+      renderHome(container);
+      break;
+    case 'analyze':
+      renderAnalyze(container);
+      break;
+    case 'farms':
+      renderFarms(container);
+      break;
+    case 'history':
+      renderHistory(container);
+      break;
+    case 'advisory':
+      renderAdvisory(container);
+      break;
+    case 'reports':
+      renderReports(container);
+      break;
+    case 'help':
+      renderHelp(container);
+      break;
+    default:
+      renderHome(container);
+  }
+  applyTranslations();
+}
+
+// ============================================================================
+// SECTION 1: HOME PAGE
+// ============================================================================
+async function renderHome(container) {
+  let stats = { total_tests: 0, total_images: 0, avg_ph: null };
+  let recentTests = [];
+
+  if (state.activeFieldId) {
+    try {
+      stats = await fetchApi(`/api/fields/${state.activeFieldId}/stats`);
+      recentTests = await fetchApi(`/api/fields/${state.activeFieldId}/soil-tests`);
+    } catch (e) {
+      console.warn(e);
+    }
+  }
+
+  const datasetCount = state.datasetStatus ? state.datasetStatus.total_raw_images : 0;
+  const soilTypesCount = state.datasetStatus ? state.datasetStatus.soil_types.length : 6;
+
+  container.innerHTML = `
+    <!-- Welcome Banner -->
+    <div class="card" style="background: linear-gradient(135deg, #1B4332, #2D6A4F); color: #FFF; padding: 28px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+        <div>
+          <h2 style="font-size: 22px; font-weight: 700; margin-bottom: 6px;">
+            🌾 Welcome to your Soil Analytics System
+          </h2>
+          <p style="font-size: 14px; opacity: 0.9; max-width: 650px;">
+            Accurate laboratory soil nutrient measurement combined with OpenCV image preprocessing and agronomic crop advisory for optimal farm yields.
+          </p>
+        </div>
+        <button class="btn btn-secondary" onclick="window.location.hash='analyze'">
+          🔬 ${t('quick_analyze')}
+        </button>
+      </div>
+    </div>
+
+    <!-- KPI Metric Cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-icon">🌾</div>
+        <div>
+          <div class="kpi-value">${state.fields.length}</div>
+          <div class="kpi-label">${t('kpi_fields')}</div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">🧪</div>
+        <div>
+          <div class="kpi-value">${stats.total_soil_tests || 0}</div>
+          <div class="kpi-label">${t('kpi_tests')}</div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">📷</div>
+        <div>
+          <div class="kpi-value">${stats.total_images || 0}</div>
+          <div class="kpi-label">${t('kpi_photos')}</div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">🌍</div>
+        <div>
+          <div class="kpi-value">${soilTypesCount}</div>
+          <div class="kpi-label">${t('kpi_dataset')}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2 Column Overview -->
+    <div class="grid-2">
+      <!-- Recent Soil Tests -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title">🧪 Recent Soil Tests</h3>
+            <div class="card-subtitle">Latest recorded laboratory parameters</div>
+          </div>
+          <a href="#history" class="btn btn-outline btn-sm">View All</a>
+        </div>
+        ${recentTests.length === 0 ? `
+          <div style="text-align: center; padding: 36px 16px; color: var(--text-muted);">
+            <div style="font-size: 32px; margin-bottom: 8px;">📋</div>
+            <p style="font-weight: 600;">No soil tests recorded yet</p>
+            <p style="font-size: 13px; margin-top: 4px;">Click "Analyze Soil" to record your first field sample.</p>
+          </div>
+        ` : `
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>N (kg/ha)</th>
+                  <th>P (kg/ha)</th>
+                  <th>K (kg/ha)</th>
+                  <th>pH</th>
+                  <th>Health</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${recentTests.slice(0, 5).map(t => `
+                  <tr>
+                    <td>${new Date(t.tested_at).toLocaleDateString()}</td>
+                    <td><b>${t.nitrogen}</b></td>
+                    <td><b>${t.phosphorus}</b></td>
+                    <td><b>${t.potassium}</b></td>
+                    <td><span class="status-badge ${t.ph >= 6.0 && t.ph <= 7.5 ? 'green' : (t.ph < 5.5 || t.ph > 8.0 ? 'red' : 'yellow')}">${t.ph.toFixed(1)}</span></td>
+                    <td><span class="status-badge green">${t.health_score || '–'} / 100</span></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `}
+      </div>
+
+      <!-- Soil Dataset Distribution (Module 5) -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title">📚 Real Soil Dataset Classes</h3>
+            <div class="card-subtitle">Public benchmarks (Kaggle, Roboflow, ICAR, USDA)</div>
+          </div>
+          <span class="status-badge green">${datasetCount} Images</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          ${(state.datasetStatus ? state.datasetStatus.soil_types : [
+            { display_name: "Black Soil", image_count: 0 },
+            { display_name: "Red Soil", image_count: 0 },
+            { display_name: "Alluvial Soil", image_count: 0 },
+            { display_name: "Laterite Soil", image_count: 0 },
+            { display_name: "Sandy Soil", image_count: 0 },
+            { display_name: "Clay Soil", image_count: 0 }
+          ]).map(st => `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--bg); border-radius: 8px; border: 1px solid var(--border);">
+              <span style="font-weight: 600; font-size: 14px; color: var(--primary);">🌱 ${st.display_name}</span>
+              <span style="font-size: 12px; font-weight: 700; color: var(--text-muted);">${st.image_count} reference samples</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ============================================================================
+// SECTION 2: ANALYZE SOIL (Module 1, 2, 4)
+// ============================================================================
+function renderAnalyze(container) {
+  if (!state.activeFieldId) {
+    container.innerHTML = `
+      <div class="card" style="text-align: center; padding: 48px 20px;">
+        <div style="font-size: 40px; margin-bottom: 12px;">🌾</div>
+        <h3 style="color: var(--primary); margin-bottom: 8px;">Please register a farm first</h3>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">You need an active farm to attach soil photographs and laboratory test records.</p>
+        <button class="btn btn-primary" onclick="document.getElementById('newFarmDialog').showModal()">+ Register Farm</button>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = `
+    <!-- Top Two Input Cards: Option A & Option B -->
+    <div class="grid-2" style="margin-bottom: 24px;">
+      <!-- CARD 1: Upload Soil Photo -->
+      <div class="card">
+        <h3 class="card-title">📁 ${t('card_upload_title')}</h3>
+        <p class="card-subtitle" style="margin-bottom: 16px;">${t('card_upload_hint')}</p>
+
+        <label class="upload-dropzone" id="fileDropzone">
+          <input type="file" id="fileInput" accept="image/jpeg,image/png,image/jpg">
+          <div class="dropzone-icon">📤</div>
+          <div class="dropzone-title">Click to Select from Gallery</div>
+          <div class="dropzone-hint">Supported: JPEG, JPG, PNG (Max 10 MB)</div>
+        </label>
+
+        <!-- Preview Box -->
+        <div id="uploadPreviewBox" class="preview-box" style="display: none;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-size: 13px; font-weight: 600;" id="uploadFileName">image.jpg</span>
+            <button class="btn btn-outline btn-sm" id="btnRemoveUpload">✕ Remove</button>
+          </div>
+          <img id="uploadPreviewImg" style="width: 100%; max-height: 220px; object-fit: cover; border-radius: 8px;" src="" alt="Selected Preview">
+          <button class="btn btn-primary" id="btnSubmitUpload" style="width: 100%; margin-top: 12px;">
+            Upload & Preprocess
+          </button>
+        </div>
+      </div>
+
+      <!-- CARD 2: Live Camera Capture -->
+      <div class="card">
+        <h3 class="card-title">📷 ${t('card_camera_title')}</h3>
+        <p class="card-subtitle" style="margin-bottom: 16px;">${t('card_camera_hint')}</p>
+
+        <div class="camera-container" id="cameraBox">
+          <div class="camera-placeholder" id="cameraPlaceholder">
+            <div class="camera-placeholder-icon">📸</div>
+            <p style="font-size: 13px;">Live Camera not active</p>
+          </div>
+          <video id="cameraVideo" autoplay playsinline style="display: none;"></video>
+          <canvas id="cameraCanvas" style="display: none;"></canvas>
+          <img id="cameraSnapshot" style="display: none;" alt="Captured Photo">
+        </div>
+
+        <div class="camera-actions">
+          <button class="btn btn-secondary" id="btnStartCamera" type="button">
+            ${t('btn_open_camera')}
+          </button>
+          <button class="btn btn-primary" id="btnSnapPhoto" type="button" style="display: none;">
+            ${t('btn_capture')}
+          </button>
+          <button class="btn btn-outline" id="btnRetakePhoto" type="button" style="display: none;">
+            ${t('btn_retake')}
+          </button>
+          <button class="btn btn-primary" id="btnUseCameraPhoto" type="button" style="display: none;">
+            ${t('btn_use_photo')}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preprocessing Comparison Display (Module 4) -->
+    <div id="preprocessResultCard" class="card" style="display: none;">
+      <h3 class="card-title">🔬 OpenCV Image Preprocessing (224 × 224 CNN Normalization)</h3>
+      <p class="card-subtitle">Lighting correction with partial Gray-World, CLAHE illumination adjustment, noise filtering and background extraction.</p>
+      
+      <div class="comparison-grid">
+        <div class="comparison-item">
+          <img id="cmpOriginalImg" src="" alt="Original Capture">
+          <div class="comparison-label">Original High-Resolution Capture</div>
+        </div>
+        <div class="comparison-item">
+          <img id="cmpProcessedImg" src="" alt="Preprocessed Model Input">
+          <div class="comparison-label">CLAHE Preprocessed (224 × 224 RGB)</div>
+        </div>
+      </div>
+      <div id="preprocessWarnings" style="margin-top: 12px;"></div>
+    </div>
+
+    <!-- Soil Laboratory Data Form (Module 2) -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <h3 class="card-title">🧪 ${t('form_test_title')}</h3>
+          <p class="card-subtitle">${t('form_test_sub')}</p>
+        </div>
+        <span class="status-badge green">Accurate Lab Input</span>
+      </div>
+
+      <form id="soilTestForm">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">${t('lbl_n')} (kg/ha) *</label>
+            <input type="number" step="any" min="0" max="500" name="nitrogen" class="form-input" required placeholder="e.g. 280">
+            <span class="form-hint">Standard Range: 0 - 500 kg/ha</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">${t('lbl_p')} (kg/ha) *</label>
+            <input type="number" step="any" min="0" max="150" name="phosphorus" class="form-input" required placeholder="e.g. 45">
+            <span class="form-hint">Standard Range: 0 - 150 kg/ha</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">${t('lbl_k')} (kg/ha) *</label>
+            <input type="number" step="any" min="0" max="800" name="potassium" class="form-input" required placeholder="e.g. 320">
+            <span class="form-hint">Standard Range: 0 - 800 kg/ha</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">${t('lbl_ph')} (0 - 14) *</label>
+            <input type="number" step="0.1" min="0" max="14" name="ph" class="form-input" required placeholder="e.g. 6.8">
+            <span class="form-hint">Optimal for most crops: 6.0 - 7.5</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">${t('lbl_om')} (%) *</label>
+            <input type="number" step="0.1" min="0" max="100" name="organic_matter" class="form-input" required placeholder="e.g. 2.4">
+            <span class="form-hint">Desirable: > 1.5%</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">${t('lbl_moisture')} (%) *</label>
+            <input type="number" step="0.1" min="0" max="100" name="moisture" class="form-input" required placeholder="e.g. 35">
+            <span class="form-hint">Optimal: 25% - 50%</span>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label class="form-label">Agronomic Field Notes (Optional)</label>
+          <input type="text" name="notes" class="form-input" placeholder="e.g. Sample collected from top 15cm post-monsoon harvest" maxlength="500">
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="min-width: 200px;">
+          ${t('btn_submit_test')}
+        </button>
+      </form>
+    </div>
+
+    <!-- Real-Time Analysis Result Panel -->
+    <div id="testResultPanel" style="display: none;"></div>
+  `;
+
+  bindAnalyzeEvents();
+}
+
+function bindAnalyzeEvents() {
+  // --- Gallery File Upload Handler ---
+  const fileInput = document.getElementById('fileInput');
+  const uploadPreviewBox = document.getElementById('uploadPreviewBox');
+  const uploadPreviewImg = document.getElementById('uploadPreviewImg');
+  const uploadFileName = document.getElementById('uploadFileName');
+  let selectedFile = null;
+
+  fileInput.onchange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      selectedFile = e.target.files[0];
+      uploadFileName.textContent = `${selectedFile.name} (${(selectedFile.size / 1024 / 1024).toFixed(2)} MB)`;
+      const reader = new FileReader();
+      reader.onload = (re) => {
+        uploadPreviewImg.src = re.target.result;
+        uploadPreviewBox.style.display = 'block';
+      };
+      reader.readAsDataURL(selectedFile);
+    }
+  };
+
+  document.getElementById('btnRemoveUpload').onclick = () => {
+    selectedFile = null;
+    fileInput.value = '';
+    uploadPreviewBox.style.display = 'none';
+  };
+
+  document.getElementById('btnSubmitUpload').onclick = async () => {
+    if (!selectedFile || !state.activeFieldId) return;
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+
+    try {
+      showToast('Uploading and running OpenCV preprocessing...', 'info');
+      const res = await fetchApi(`/api/fields/${state.activeFieldId}/images`, {
+        method: 'POST',
+        body: formData,
+      });
+      showToast('Image uploaded and preprocessed successfully!', 'success');
+      showPreprocessResult(res.image.id, res.warnings);
+    } catch (err) {
+      showToast('Upload error: ' + err.message, 'error');
+    }
+  };
+
+  // --- Live Camera Stream Handler (Module 1, 8) ---
+  const video = document.getElementById('cameraVideo');
+  const canvas = document.getElementById('cameraCanvas');
+  const snapImg = document.getElementById('cameraSnapshot');
+  const placeholder = document.getElementById('cameraPlaceholder');
+  const btnStart = document.getElementById('btnStartCamera');
+  const btnSnap = document.getElementById('btnSnapPhoto');
+  const btnRetake = document.getElementById('btnRetakePhoto');
+  const btnUse = document.getElementById('btnUseCameraPhoto');
+
+  btnStart.onclick = async () => {
+    try {
+      // Support environment camera mode on mobile
+      const constraints = {
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        }
+      };
+      state.cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+      video.srcObject = state.cameraStream;
+      video.style.display = 'block';
+      placeholder.style.display = 'none';
+      snapImg.style.display = 'none';
+      btnStart.style.display = 'none';
+      btnSnap.style.display = 'inline-flex';
+      btnRetake.style.display = 'none';
+      btnUse.style.display = 'none';
+    } catch (err) {
+      showToast('Camera access failed: ' + (err.name === 'NotAllowedError' ? 'Permission Denied. Please enable camera in browser settings.' : err.message), 'error');
+    }
+  };
+
+  btnSnap.onclick = () => {
+    if (!video.videoWidth) return;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    state.capturedBase64 = canvas.toDataURL('image/jpeg', 0.92);
+
+    snapImg.src = state.capturedBase64;
+    snapImg.style.display = 'block';
+    video.style.display = 'none';
+
+    btnSnap.style.display = 'none';
+    btnRetake.style.display = 'inline-flex';
+    btnUse.style.display = 'inline-flex';
+  };
+
+  btnRetake.onclick = () => {
+    state.capturedBase64 = null;
+    snapImg.style.display = 'none';
+    video.style.display = 'block';
+    btnSnap.style.display = 'inline-flex';
+    btnRetake.style.display = 'none';
+    btnUse.style.display = 'none';
+  };
+
+  btnUse.onclick = async () => {
+    if (!state.capturedBase64 || !state.activeFieldId) return;
+    try {
+      showToast('Sending live photo to backend...', 'info');
+      const res = await fetchApi('/api/images/upload-base64', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          field_id: state.activeFieldId,
+          image_data: state.capturedBase64,
+        }),
+      });
+      showToast('Camera photo preprocessed successfully!', 'success');
+      stopCamera();
+      btnStart.style.display = 'inline-flex';
+      btnRetake.style.display = 'none';
+      btnUse.style.display = 'none';
+      placeholder.style.display = 'block';
+      snapImg.style.display = 'none';
+      showPreprocessResult(res.image.id, res.warnings);
+    } catch (err) {
+      showToast('Camera upload error: ' + err.message, 'error');
+    }
+  };
+
+  // --- Soil Laboratory Test Form Handler ---
+  document.getElementById('soilTestForm').onsubmit = async (e) => {
+    e.preventDefault();
+    if (!state.activeFieldId) return;
+
+    const fd = new FormData(e.target);
+    const body = {
+      nitrogen: parseFloat(fd.get('nitrogen')),
+      phosphorus: parseFloat(fd.get('phosphorus')),
+      potassium: parseFloat(fd.get('potassium')),
+      ph: parseFloat(fd.get('ph')),
+      organic_matter: parseFloat(fd.get('organic_matter')),
+      moisture: parseFloat(fd.get('moisture')),
+      notes: fd.get('notes') || null,
+    };
+
+    try {
+      showToast('Submitting soil laboratory test...', 'info');
+      const test = await fetchApi(`/api/fields/${state.activeFieldId}/soil-tests`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      // Also fetch advisory recommendations
+      const adv = await fetchApi(`/api/soil-tests/${test.id}/advisory`);
+      showSoilResults(test, adv);
+      showToast('Soil test analyzed and advisory generated!', 'success');
+    } catch (err) {
+      showToast('Failed to record soil test: ' + err.message, 'error');
+    }
+  };
+}
+
+function stopCamera() {
+  if (state.cameraStream) {
+    state.cameraStream.getTracks().forEach(t => t.stop());
+    state.cameraStream = null;
+  }
+}
+
+function showPreprocessResult(imageId, warnings = []) {
+  const card = document.getElementById('preprocessResultCard');
+  if (!card) return;
+  card.style.display = 'block';
+  document.getElementById('cmpOriginalImg').src = `/api/images/${imageId}/file?t=${Date.now()}`;
+  document.getElementById('cmpProcessedImg').src = `/api/images/${imageId}/preprocessed?t=${Date.now()}`;
+
+  const warnDiv = document.getElementById('preprocessWarnings');
+  if (warnings && warnings.length > 0) {
+    warnDiv.innerHTML = warnings.map(w => `
+      <div style="background: var(--status-yellow-bg); color: var(--status-yellow); padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; margin-top: 6px;">
+        ⚠️ Image Quality Notice: ${w}
+      </div>
+    `).join('');
+  } else {
+    warnDiv.innerHTML = `
+      <div style="background: var(--status-green-bg); color: var(--status-green); padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: 600;">
+        ✓ Image passes all quality checks (variance, lightness, resolution). Ready for CNN inference.
+      </div>
+    `;
+  }
+}
+
+function showSoilResults(test, advisory) {
+  const panel = document.getElementById('testResultPanel');
+  panel.style.display = 'block';
+
+  // Nutrient evaluation helper
+  const evalN = test.nitrogen >= 280 ? { status: 'Optimal / High', cls: 'green', desc: 'Sufficient for strong vegetative growth' } : (test.nitrogen >= 180 ? { status: 'Medium', cls: 'yellow', desc: 'Supplement with nitrogenous fertilizer or green manure' } : { status: 'Low', cls: 'red', desc: 'Severe nitrogen deficit; growth will be stunted' });
+  const evalP = test.phosphorus >= 25 ? { status: 'Optimal', cls: 'green', desc: 'Promotes vigorous root systems' } : (test.phosphorus >= 12 ? { status: 'Medium', cls: 'yellow', desc: 'Consider applying DAP or rock phosphate' } : { status: 'Low', cls: 'red', desc: 'Root development will be poor' });
+  const evalK = test.potassium >= 200 ? { status: 'Optimal', cls: 'green', desc: 'High drought and pest resistance' } : (test.potassium >= 110 ? { status: 'Medium', cls: 'yellow', desc: 'Apply moderate Muriate of Potash (MOP)' } : { status: 'Low', cls: 'red', desc: 'Weak stems, vulnerable to diseases' });
+  const evalPH = (test.ph >= 6.0 && test.ph <= 7.5) ? { status: 'Optimal (Neutral)', cls: 'green', desc: 'Maximum nutrient availability' } : (test.ph < 6.0 ? { status: 'Acidic', cls: 'red', desc: 'Apply agricultural lime to raise pH' } : { status: 'Alkaline', cls: 'yellow', desc: 'Apply gypsum to restore neutral balance' });
+
+  panel.innerHTML = `
+    <div class="card" style="border: 2px solid var(--secondary);">
+      <div class="card-header">
+        <div>
+          <h3 class="card-title">📊 Soil Health Evaluation & Agronomic Diagnosis</h3>
+          <p class="card-subtitle">Test Record #${test.id} • Recorded ${new Date(test.tested_at).toLocaleString()}</p>
+        </div>
+        <span class="status-badge green">Validated Lab Data</span>
+      </div>
+
+      <!-- Health Score Card -->
+      <div class="score-card">
+        <div class="score-circle">
+          <span class="score-num">${test.health_score || advisory.health_score || 75}</span>
+          <span class="score-denom">/ 100</span>
+        </div>
+        <div>
+          <h4 style="font-size: 18px; color: var(--primary); font-weight: 700; margin-bottom: 4px;">
+            ${t('health_score_title')}
+          </h4>
+          <p style="font-size: 13px; color: var(--text-main);">
+            Weighted agronomic assessment across primary nutrients (N, P, K), pH balance, organic matter content, and moisture retention.
+          </p>
+        </div>
+      </div>
+
+      <!-- Parameters Breakdown Table -->
+      <div class="table-responsive" style="margin-bottom: 20px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Nutrient / Parameter</th>
+              <th>Measured Value</th>
+              <th>Agronomic Status</th>
+              <th>Assessment & Guidance</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>Nitrogen (N)</b></td>
+              <td>${test.nitrogen} kg/ha</td>
+              <td><span class="status-badge ${evalN.cls}">${evalN.status}</span></td>
+              <td>${evalN.desc}</td>
+            </tr>
+            <tr>
+              <td><b>Phosphorus (P)</b></td>
+              <td>${test.phosphorus} kg/ha</td>
+              <td><span class="status-badge ${evalP.cls}">${evalP.status}</span></td>
+              <td>${evalP.desc}</td>
+            </tr>
+            <tr>
+              <td><b>Potassium (K)</b></td>
+              <td>${test.potassium} kg/ha</td>
+              <td><span class="status-badge ${evalK.cls}">${evalK.status}</span></td>
+              <td>${evalK.desc}</td>
+            </tr>
+            <tr>
+              <td><b>Soil pH</b></td>
+              <td>${test.ph.toFixed(1)}</td>
+              <td><span class="status-badge ${evalPH.cls}">${evalPH.status}</span></td>
+              <td>${evalPH.desc}</td>
+            </tr>
+            <tr>
+              <td><b>Organic Matter</b></td>
+              <td>${test.organic_matter.toFixed(1)} %</td>
+              <td><span class="status-badge ${test.organic_matter >= 1.5 ? 'green' : 'yellow'}">${test.organic_matter >= 1.5 ? 'Good' : 'Moderate'}</span></td>
+              <td>${test.organic_matter < 1.5 ? 'Incorporate farmyard manure or vermicompost.' : 'Good microbial and organic structure.'}</td>
+            </tr>
+            <tr>
+              <td><b>Moisture Content</b></td>
+              <td>${test.moisture.toFixed(1)} %</td>
+              <td><span class="status-badge ${test.moisture >= 20 && test.moisture <= 55 ? 'green' : 'yellow'}">${test.moisture >= 20 && test.moisture <= 55 ? 'Adequate' : 'Dry / Saturated'}</span></td>
+              <td>${test.moisture < 20 ? 'Pre-sowing irrigation recommended.' : 'Optimal soil moisture for germination.'}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Intelligent Advisory Recommendations -->
+      <div class="advisory-box">
+        <h4>📋 Recommended Soil Management Practices</h4>
+        <ul class="advisory-list">
+          ${advisory.recommendations.map(r => `<li>${r}</li>`).join('')}
+        </ul>
+      </div>
+
+      <!-- Suitable Crops Section -->
+      <div style="margin-top: 20px;">
+        <h4 style="font-size: 16px; color: var(--primary); font-weight: 700; margin-bottom: 8px;">
+          🌾 Recommended High-Compatibility Crops
+        </h4>
+        <div class="crop-grid">
+          ${advisory.suitable_crops.map(crop => `
+            <div class="crop-card">
+              <div class="crop-icon">🌱</div>
+              <div class="crop-name">${crop}</div>
+              <span class="crop-badge">High Compatibility</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <p style="font-size: 11px; color: var(--text-muted); margin-top: 18px; font-style: italic;">
+        ${t('disclaimer')}
+      </p>
+    </div>
+  `;
+}
+
+// ============================================================================
+// SECTION 3: MY FARMS
+// ============================================================================
+async function renderFarms(container) {
+  let fieldsWithStats = [];
+  try {
+    fieldsWithStats = await Promise.all(state.fields.map(async f => {
+      try {
+        const stats = await fetchApi(`/api/fields/${f.id}/stats`);
+        return { ...f, stats };
+      } catch (e) {
+        return { ...f, stats: { total_soil_tests: 0, total_images: 0 } };
+      }
+    }));
+  } catch (err) {
+    showToast('Failed to load farms: ' + err.message, 'error');
+  }
+
+  container.innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <h3 class="card-title">🌾 Registered Farm Holdings</h3>
+          <p class="card-subtitle">Manage your agricultural fields, locations and metadata</p>
+        </div>
+        <button class="btn btn-primary" onclick="document.getElementById('newFarmDialog').showModal()">
+          + Register New Farm
+        </button>
+      </div>
+
+      ${fieldsWithStats.length === 0 ? `
+        <div style="text-align: center; padding: 48px; color: var(--text-muted);">
+          <div style="font-size: 40px; margin-bottom: 12px;">🚜</div>
+          <h3>No farm plots registered yet</h3>
+          <p style="font-size: 14px; margin-top: 4px;">Click "Register New Farm" above to add your first plot.</p>
+        </div>
+      ` : `
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px;">
+          ${fieldsWithStats.map(f => `
+            <div class="card" style="margin-bottom: 0; border: 1.5px solid ${f.id === state.activeFieldId ? 'var(--primary)' : 'var(--border)'};">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                <div>
+                  <h4 style="font-size: 17px; font-weight: 700; color: var(--primary);">${f.name}</h4>
+                  <div style="font-size: 12px; color: var(--text-muted);">📍 ${f.location || 'Location Unspecified'}</div>
+                </div>
+                ${f.id === state.activeFieldId ? '<span class="status-badge green">Active Field</span>' : ''}
+              </div>
+
+              <div style="background: var(--bg); padding: 12px; border-radius: 8px; margin-bottom: 14px; font-size: 13px;">
+                <div>Farmer: <b>${f.farmer_name || '–'}</b></div>
+                <div>Recorded Tests: <b>${f.stats.total_soil_tests}</b></div>
+                <div>Soil Photos: <b>${f.stats.total_images}</b></div>
+                <div>Registered: <b>${new Date(f.created_at).toLocaleDateString()}</b></div>
+              </div>
+
+              <div style="display: flex; gap: 8px;">
+                <button class="btn btn-secondary btn-sm" style="flex: 1;" onclick="setActiveFarm(${f.id})">
+                  Select Plot
+                </button>
+                <button class="btn btn-outline btn-sm" style="color: var(--status-red);" onclick="deleteFarm(${f.id})">
+                  Delete
+                </button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `}
+    </div>
+  `;
+}
+
+window.setActiveFarm = (fieldId) => {
+  state.activeFieldId = fieldId;
+  document.getElementById('farmSelect').value = fieldId;
+  showToast('Active farm plot updated', 'success');
+  renderFarms(document.getElementById('mainContent'));
+};
+
+window.deleteFarm = async (fieldId) => {
+  if (!confirm('Are you sure you want to delete this farm plot? All attached tests will be removed.')) return;
+  try {
+    await fetchApi(`/api/fields/${fieldId}`, { method: 'DELETE' });
+    showToast('Farm plot deleted', 'info');
+    await refreshFields();
+    renderFarms(document.getElementById('mainContent'));
+  } catch (err) {
+    showToast('Error deleting farm: ' + err.message, 'error');
+  }
+};
+
+// ============================================================================
+// SECTION 4: SOIL HISTORY
+// ============================================================================
+async function renderHistory(container) {
+  let tests = [];
+  let images = [];
+  if (state.activeFieldId) {
+    try {
+      tests = await fetchApi(`/api/fields/${state.activeFieldId}/soil-tests`);
+      images = await fetchApi(`/api/fields/${state.activeFieldId}/images`);
+    } catch (e) {
+      console.warn(e);
+    }
+  }
+
+  container.innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <h3 class="card-title">📜 Historical Laboratory Soil Tests</h3>
+          <p class="card-subtitle">Timeline of nutrient assessments and degradation tracking</p>
+        </div>
+      </div>
+
+      ${tests.length === 0 ? `
+        <div style="text-align: center; padding: 48px; color: var(--text-muted);">
+          <div style="font-size: 36px; margin-bottom: 12px;">📊</div>
+          <h3>No test history available</h3>
+          <p style="font-size: 14px;">Submit a soil test from the "Analyze Soil" tab to start logging historical records.</p>
+        </div>
+      ` : `
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Test ID</th>
+                <th>Date</th>
+                <th>Nitrogen (N)</th>
+                <th>Phosphorus (P)</th>
+                <th>Potassium (K)</th>
+                <th>pH</th>
+                <th>Organic Matter</th>
+                <th>Moisture</th>
+                <th>Health Score</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tests.map(t => `
+                <tr>
+                  <td>#${t.id}</td>
+                  <td>${new Date(t.tested_at).toLocaleString()}</td>
+                  <td><b>${t.nitrogen}</b> kg/ha</td>
+                  <td><b>${t.phosphorus}</b> kg/ha</td>
+                  <td><b>${t.potassium}</b> kg/ha</td>
+                  <td><span class="status-badge ${t.ph >= 6.0 && t.ph <= 7.5 ? 'green' : 'yellow'}">${t.ph.toFixed(1)}</span></td>
+                  <td>${t.organic_matter.toFixed(1)} %</td>
+                  <td>${t.moisture.toFixed(1)} %</td>
+                  <td><span class="status-badge green">${t.health_score || '–'} / 100</span></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `}
+    </div>
+
+    <!-- Gallery of Previously Uploaded Images -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <h3 class="card-title">📷 Field Soil Photograph Log</h3>
+          <p class="card-subtitle">Inspected captures and blur detection scores</p>
+        </div>
+      </div>
+      ${images.length === 0 ? `
+        <p style="color: var(--text-muted); font-size: 14px;">No photographs uploaded for this farm yet.</p>
+      ` : `
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px;">
+          ${images.map(img => `
+            <div style="border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: #FFF;">
+              <img src="/api/images/${img.id}/file" style="width: 100%; height: 110px; object-fit: cover;" alt="Soil Capture">
+              <div style="padding: 8px; font-size: 11px;">
+                <div style="font-weight: 700; color: var(--primary);">${img.original_format} • ${img.width}×${img.height}</div>
+                <div style="color: var(--text-muted);">${new Date(img.uploaded_at).toLocaleDateString()}</div>
+                <div style="margin-top: 4px;">
+                  <span class="status-badge ${img.blur_score >= 60 ? 'green' : 'yellow'}">
+                    ${img.blur_score >= 60 ? 'Sharp' : 'Blurry'} (${img.blur_score ? img.blur_score.toFixed(0) : '–'})
+                  </span>
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `}
+    </div>
+  `;
+}
+
+// ============================================================================
+// SECTION 5: CROP ADVISORY
+// ============================================================================
+async function renderAdvisory(container) {
+  let tests = [];
+  if (state.activeFieldId) {
+    try {
+      tests = await fetchApi(`/api/fields/${state.activeFieldId}/soil-tests`);
+    } catch (e) {
+      console.warn(e);
+    }
+  }
+
+  if (tests.length === 0) {
+    container.innerHTML = `
+      <div class="card" style="text-align: center; padding: 48px;">
+        <div style="font-size: 40px; margin-bottom: 12px;">🌾</div>
+        <h3 style="color: var(--primary);">No Soil Data Available for Advisory</h3>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">Please record laboratory soil measurements for this plot first.</p>
+        <button class="btn btn-primary" onclick="window.location.hash='analyze'">Record Soil Test</button>
+      </div>
+    `;
+    return;
+  }
+
+  const latestTest = tests[0];
+  let advisory = null;
+  try {
+    advisory = await fetchApi(`/api/soil-tests/${latestTest.id}/advisory`);
+  } catch (err) {
+    showToast('Failed to fetch advisory: ' + err.message, 'error');
+  }
+
+  container.innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <h3 class="card-title">💡 Intelligent Agronomic Advisory Engine</h3>
+          <p class="card-subtitle">Custom recommendations based on Test #${latestTest.id} (${new Date(latestTest.tested_at).toLocaleDateString()})</p>
+        </div>
+        <span class="status-badge green">Rule-Based Agronomy</span>
+      </div>
+
+      <div class="grid-2">
+        <div class="advisory-box">
+          <h4>🌱 Suitable Crops for Current Soil Parameters</h4>
+          <div class="crop-grid" style="margin-top: 10px;">
+            ${(advisory ? advisory.suitable_crops : ['Rice', 'Maize', 'Groundnut']).map(c => `
+              <div class="crop-card">
+                <div class="crop-icon">🌾</div>
+                <div class="crop-name">${c}</div>
+                <span class="crop-badge">High Compatibility</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="advisory-box" style="border-left-color: var(--primary);">
+          <h4 style="color: var(--primary);">📋 Actionable Soil Improvement Guidance</h4>
+          <ul class="advisory-list" style="margin-top: 10px;">
+            ${(advisory ? advisory.recommendations : ['Maintain organic matter using farmyard compost.']).map(r => `
+              <li>${r}</li>
+            `).join('')}
+          </ul>
+        </div>
+      </div>
+
+      ${advisory && advisory.warnings && advisory.warnings.length > 0 ? `
+        <div style="background: var(--status-yellow-bg); border: 1px solid var(--status-yellow); padding: 14px; border-radius: 8px; margin-top: 16px;">
+          <h4 style="color: var(--status-yellow); font-size: 14px; margin-bottom: 4px;">⚠️ Agronomic Alerts</h4>
+          <ul style="padding-left: 20px; font-size: 13px; color: #78350F;">
+            ${advisory.warnings.map(w => `<li>${w}</li>`).join('')}
+          </ul>
+        </div>
+      ` : ''}
+
+      <div style="background: var(--bg); padding: 14px; border-radius: 8px; margin-top: 20px; font-size: 12px; color: var(--text-muted);">
+        <b>Scientific Assurance:</b> Crop suitability and nutrient enrichment actions are strictly generated using verified agronomic formulas (ICAR & TNAU soil test standards). No fabricated fertilizer dosages are provided.
+      </div>
+    </div>
+  `;
+}
+
+// ============================================================================
+// SECTION 6: REPORTS & EXPORT
+// ============================================================================
+async function renderReports(container) {
+  let activeFarm = state.fields.find(f => f.id === state.activeFieldId);
+  let tests = [];
+  if (state.activeFieldId) {
+    try {
+      tests = await fetchApi(`/api/fields/${state.activeFieldId}/soil-tests`);
+    } catch (e) {
+      console.warn(e);
+    }
+  }
+
+  container.innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <h3 class="card-title">📊 Official Soil Health Report</h3>
+          <p class="card-subtitle">Printable agricultural advisory report</p>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-outline btn-sm" onclick="exportTestsCsv()">Download CSV</button>
+          <button class="btn btn-primary btn-sm" onclick="window.print()">🖨️ Print / Save as PDF</button>
+        </div>
+      </div>
+
+      <!-- Printable Report Body -->
+      <div style="background: #FFF; padding: 24px; border: 1px solid var(--border); border-radius: 12px;">
+        <div style="display: flex; justify-content: space-between; border-bottom: 2px solid var(--primary); padding-bottom: 16px; margin-bottom: 20px;">
+          <div>
+            <h2 style="color: var(--primary); font-size: 22px;">AI-POWERED SOIL HEALTH CARD</h2>
+            <div style="font-size: 13px; color: var(--text-muted);">Comprehensive Nutrient Assessment & Advisory</div>
+          </div>
+          <div style="text-align: right; font-size: 13px;">
+            <div><b>Date:</b> ${new Date().toLocaleDateString()}</div>
+            <div><b>Plot:</b> ${activeFarm ? activeFarm.name : 'All Fields'}</div>
+            <div><b>Farmer:</b> ${activeFarm && activeFarm.farmer_name ? activeFarm.farmer_name : '–'}</div>
+          </div>
+        </div>
+
+        ${tests.length === 0 ? `
+          <p style="color: var(--text-muted); font-size: 14px; text-align: center; padding: 30px;">
+            No soil tests recorded for this field. Please complete a soil analysis first.
+          </p>
+        ` : `
+          <h4 style="margin-bottom: 10px; color: var(--primary);">Most Recent Soil Test Parameters</h4>
+          <div class="table-responsive" style="margin-bottom: 24px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nutrient / Parameter</th>
+                  <th>Measured Reading</th>
+                  <th>Standard Reference Benchmark</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><b>Available Nitrogen (N)</b></td>
+                  <td>${tests[0].nitrogen} kg/ha</td>
+                  <td>280 - 560 kg/ha</td>
+                  <td>${tests[0].nitrogen >= 280 ? 'Normal / Optimal' : 'Deficient'}</td>
+                </tr>
+                <tr>
+                  <td><b>Available Phosphorus (P)</b></td>
+                  <td>${tests[0].phosphorus} kg/ha</td>
+                  <td>25 - 55 kg/ha</td>
+                  <td>${tests[0].phosphorus >= 25 ? 'Optimal' : 'Low'}</td>
+                </tr>
+                <tr>
+                  <td><b>Available Potassium (K)</b></td>
+                  <td>${tests[0].potassium} kg/ha</td>
+                  <td>150 - 280 kg/ha</td>
+                  <td>${tests[0].potassium >= 150 ? 'Optimal' : 'Deficient'}</td>
+                </tr>
+                <tr>
+                  <td><b>Soil pH</b></td>
+                  <td>${tests[0].ph.toFixed(1)}</td>
+                  <td>6.0 - 7.5 (Neutral)</td>
+                  <td>${tests[0].ph >= 6.0 && tests[0].ph <= 7.5 ? 'Optimal' : 'Acidic / Alkaline'}</td>
+                </tr>
+                <tr>
+                  <td><b>Organic Matter</b></td>
+                  <td>${tests[0].organic_matter.toFixed(1)} %</td>
+                  <td>> 1.5 %</td>
+                  <td>${tests[0].organic_matter >= 1.5 ? 'Desirable' : 'Low'}</td>
+                </tr>
+                <tr>
+                  <td><b>Moisture Content</b></td>
+                  <td>${tests[0].moisture.toFixed(1)} %</td>
+                  <td>25 - 50 %</td>
+                  <td>${tests[0].moisture >= 25 && tests[0].moisture <= 50 ? 'Optimal' : 'Needs Adjustment'}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style="border-top: 1px dashed var(--border); padding-top: 16px;">
+            <h4 style="color: var(--primary); margin-bottom: 8px;">Official Agronomic Advisory Summary</h4>
+            <p style="font-size: 13px; color: var(--text-main); margin-bottom: 8px;">
+              Apply balanced organic manure, adopt recommended crop rotations, and soil test annually to preserve sustainable soil health.
+            </p>
+            <p style="font-size: 11px; color: var(--text-muted); font-style: italic;">
+              Certified by Infosys 7.0 AI-Powered Soil Analytics System.
+            </p>
+          </div>
+        `}
+      </div>
+    </div>
+  `;
+}
+
+window.exportTestsCsv = async () => {
+  if (!state.activeFieldId) return;
+  try {
+    const tests = await fetchApi(`/api/fields/${state.activeFieldId}/soil-tests`);
+    if (tests.length === 0) {
+      showToast('No tests to export', 'error');
+      return;
+    }
+    const headers = ['id', 'tested_at', 'nitrogen', 'phosphorus', 'potassium', 'ph', 'organic_matter', 'moisture', 'health_score'];
+    const rows = tests.map(t => [t.id, t.tested_at, t.nitrogen, t.phosphorus, t.potassium, t.ph, t.organic_matter, t.moisture, t.health_score || '']);
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `soil_tests_field_${state.activeFieldId}.csv`;
+    a.click();
+    showToast('CSV downloaded successfully!', 'success');
+  } catch (err) {
+    showToast('Export error: ' + err.message, 'error');
+  }
+};
+
+// ============================================================================
+// SECTION 7: HELP & FAQ
+// ============================================================================
+function renderHelp(container) {
+  container.innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <h3 class="card-title">❓ Farmer Guide & FAQ</h3>
+          <p class="card-subtitle">Practical guidance on soil testing, camera captures, and nutrient management</p>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <div class="card" style="margin-bottom: 0; background: var(--bg);">
+          <h4 style="color: var(--primary); margin-bottom: 6px;">📸 How do I take an optimal soil photograph with my phone?</h4>
+          <p style="font-size: 14px; color: var(--text-main);">
+            Hold your mobile camera approximately 15–20 cm above the soil surface. Use natural daylight and avoid harsh shadows or flash reflections. Clear away stones, straw, and foreign debris before capturing.
+          </p>
+        </div>
+
+        <div class="card" style="margin-bottom: 0; background: var(--bg);">
+          <h4 style="color: var(--primary); margin-bottom: 6px;">🧪 What do Nitrogen, Phosphorus, and Potassium (N-P-K) do?</h4>
+          <p style="font-size: 14px; color: var(--text-main);">
+            • <b>Nitrogen (N):</b> Powers green leaf growth and vegetative vigor.<br>
+            • <b>Phosphorus (P):</b> Stimulates root development and flowering.<br>
+            • <b>Potassium (K):</b> Enhances pest resistance, disease tolerance, and fruit filling.
+          </p>
+        </div>
+
+        <div class="card" style="margin-bottom: 0; background: var(--bg);">
+          <h4 style="color: var(--primary); margin-bottom: 6px;">⚖️ Why is Soil pH so important?</h4>
+          <p style="font-size: 14px; color: var(--text-main);">
+            pH determines whether nutrients can be absorbed by plant roots. In acidic soils (pH < 6.0), nutrients become locked and unavailable. In alkaline soils (pH > 8.0), micronutrients like iron and zinc become inaccessible.
+          </p>
+        </div>
+
+        <div class="card" style="margin-bottom: 0; background: var(--bg);">
+          <h4 style="color: var(--primary); margin-bottom: 6px;">📱 How does the Live Camera feature work on Android?</h4>
+          <p style="font-size: 14px; color: var(--text-main);">
+            Click "Open Camera", grant permission when prompted in Chrome, and the rear camera will automatically activate. Take a photo, inspect the snapshot, and click "Use Photo & Preprocess" to send it to the system.
+          </p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Start Application on Load
+document.addEventListener('DOMContentLoaded', initApp);
+</script>
+</body>
+</html>

@@ -20,10 +20,11 @@ __pycache__/
 uploads/*
 !uploads/.gitkeep
 
-# Data (keep placeholders)
-data/raw/*
+# Data (keep folder structure and .gitkeep placeholders)
+data/raw/*/*
 data/processed/*
 data/raw_sample/
+!data/raw/*/.gitkeep
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 
@@ -36,5 +37,3 @@ data/raw_sample/
 # OS
 .DS_Store
 Thumbs.db
-
-# Docker volumes
