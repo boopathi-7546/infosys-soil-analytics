@@ -101,3 +101,4 @@ This checklist provides a systematic step-by-step procedure for verifying the **
 3. Verify the Android Print spooler opens.
 4. Verify navigation bars and action buttons are cleanly hidden in print preview.
 5. Save the PDF to the device downloads folder and verify legibility.
+

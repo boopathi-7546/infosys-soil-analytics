@@ -114,3 +114,4 @@ def migrate(sqlite_path: str = "soil.db", pg_url: str | None = None):
 
 if __name__ == "__main__":
     migrate()
+
