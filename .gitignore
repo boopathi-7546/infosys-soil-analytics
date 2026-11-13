@@ -1,0 +1,40 @@
+﻿# Environment
+.env
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Testing
+.pytest_cache/
+
+# Database
+*.db
+*.sqlite3
+
+# Uploads (keep placeholder)
+uploads/*
+!uploads/.gitkeep
+
+# Data (keep placeholders)
+data/raw/*
+data/processed/*
+data/raw_sample/
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker volumes

@@ -1,0 +1,109 @@
+!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Soil Analytics</title>
+<style>
+:root{--sb:#0e1a13;--sb2:#18291f;--lime:#b7f34a;--bg:#f2f5f0;--card:#fff;--ink:#17231b;--mute:#66756b;--line:#e0e6dd;--brand:#2d6a4f;--soft:#e8f1ea;--err:#b3261e;--warn:#8a5a00;--loam:#7a4e2d;--blue:#3b7ea1}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+h1,h2,h3,h4{font-family:Georgia,serif;font-weight:600;margin:0}button,input,select{font:inherit;color:inherit}:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.app{display:grid;grid-template-columns:250px 1fr;min-height:100vh}
+.sb{background:var(--sb);color:#cfe0d3;padding:22px 14px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column}
+.brand{display:flex;gap:10px;align-items:center;padding:0 8px 18px;border-bottom:1px solid var(--sb2);margin-bottom:16px}
+.brand i{width:38px;height:38px;border-radius:10px;background:var(--lime);color:var(--sb);display:grid;place-items:center;font-style:normal;font-size:20px}
+.brand b{font:600 20px Georgia,serif;color:#fff;display:block;line-height:1.1}.brand small{font-size:11px;color:#8fa596}
+.sb p{font-size:11px;color:#6f8777;margin:6px 10px;letter-spacing:.08em}
+.sb nav a{display:flex;gap:12px;align-items:center;padding:10px 12px;border-radius:10px;color:#cfe0d3;text-decoration:none;margin-bottom:2px}
+.sb nav a:hover{background:var(--sb2)}.sb nav a.on{background:var(--sb2);color:var(--lime);box-shadow:inset 0 0 0 1px #2c4636;font-weight:600}.sb nav a span{width:20px;text-align:center}
+.sb .foot{margin-top:auto;font-size:13px;padding:0 10px}.sb .foot a{color:#8fa596}
+.bar{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 26px;background:var(--card);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.bar h2{font-size:22px}.bar div{display:flex;gap:10px;align-items:center}
+.pill{font-size:13px;padding:3px 10px;border-radius:99px;background:var(--soft);color:var(--mute)}.pill.ok{color:var(--brand)}.pill.bad{color:var(--err)}
+#view{padding:22px 26px 48px;max-width:1200px}
+.btn{background:var(--brand);color:#fff;border:0;border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:600}.btn.ghost{background:var(--soft);color:var(--ink)}.btn.sm{padding:5px 11px;font-size:13px}
+select,input{padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:#fff;width:100%}.bar select{width:auto;min-width:180px}
+label{display:block;font-size:13px;color:var(--mute);margin-bottom:8px}label input{margin-top:3px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px}.card h3{margin-bottom:10px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}.g2.w{grid-template-columns:1.4fr 1fr}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;border-left:4px solid var(--brand)}
+.kpi b{display:block;font:600 28px Georgia,serif}.kpi span{color:var(--mute);font-size:13px}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.dz{display:block;border:2px dashed #c9d5c9;border-radius:12px;padding:30px;text-align:center;cursor:pointer;color:var(--mute);background:#fafcf9}.dz:hover,.dz.over{border-color:var(--brand);background:var(--soft)}.dz input{display:none}.dz b{display:block;color:var(--ink);font-size:16px}
+.okb{color:#1a7a43;font-weight:600;text-align:center;margin:0 0 12px}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:12px}.cmp img{width:100%;border-radius:10px;display:block;aspect-ratio:1;object-fit:cover}.cmp figcaption{font-size:13px;color:var(--mute);text-align:center;margin-top:4px}.cmp figure{margin:0}
+.dims{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}.dims div{border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center;color:var(--mute);font-size:13px}.dims b{display:block;color:var(--ink);font-size:20px}
+.ops{border:1px solid var(--line);border-radius:10px;padding:12px 16px}.ops h4{text-align:center;font-size:15px;margin-bottom:8px}.ops ul{list-style:none;margin:0;padding:0}.ops li{padding:3px 0;color:var(--mute);font-size:14px}.ops li:before{content:"✓";color:#1a7a43;margin-right:10px;font-weight:700}
+.warn{color:var(--warn);font-size:14px;margin:8px 0 0}
+.gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;margin-top:12px}.gal button{padding:0;border:2px solid transparent;border-radius:9px;overflow:hidden;background:none;cursor:pointer;text-align:left}.gal button.on{border-color:var(--brand)}.gal img{display:block;width:100%;height:84px;object-fit:cover}.gal span{display:block;font-size:12px;color:var(--mute);padding:3px 5px}
+.ph{margin:6px 0 14px}.ph .big{font:600 32px Georgia,serif}.ph .big small{font:13px system-ui;color:var(--mute);margin-left:8px}.ruler{position:relative;height:12px;border-radius:6px;margin-top:10px;background:linear-gradient(90deg,#c0392b,#e67e22,#f1c40f,#7fb069,#2d6a4f,#3b7ea1,#5b4b8a)}.mark{position:absolute;top:-6px;width:4px;height:24px;background:var(--ink);border-radius:2px;transform:translateX(-2px)}
+.m{display:grid;grid-template-columns:110px 1fr 90px;gap:10px;align-items:center;padding:6px 0;border-top:1px solid var(--line)}.m i{display:block;height:8px;border-radius:4px;background:var(--soft)}.m u{display:block;height:100%;border-radius:4px;background:var(--brand)}.m.o u{background:var(--loam)}.m.w u{background:var(--blue)}.m em{font-style:normal;text-align:right}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:right;padding:8px;border-top:1px solid var(--line)}th{color:var(--mute);font-weight:500;border:0}th:first-child,td:first-child,.l{text-align:left}.tw{overflow-x:auto}.empty{color:var(--mute);padding:10px 0}
+dialog{border:1px solid var(--line);border-radius:12px;width:min(420px,92%)}dialog::backdrop{background:#0008}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:8px;display:none;max-width:90%;z-index:9}#toast.show{display:block}#toast.err{background:var(--err)}
+@media(max-width:900px){.app{grid-template-columns:1fr}.sb{position:static;height:auto}.sb nav{display:flex;flex-wrap:wrap;gap:4px}.kpis,.g2,.g2.w{grid-template-columns:1fr 1fr}.g2,.g2.w{grid-template-columns:1fr}}
+</style></head><body>
+<div class="app"><aside class="sb"><div class="brand"><i>🌱</i><div><b>Soil Analytics</b><small>Smart agriculture</small></div></div><p>MAIN MENU</p><nav id="nav"></nav><div class="foot"><a href="/docs" target="_blank">API documentation</a></div></aside>
+<div><header class="bar"><h2 id="title"></h2><div><select id="fsel" aria-label="Field"></select><button class="btn sm" id="addf" type="button">Add field</button><span id="status" class="pill">Connecting…</span></div></header><main id="view"></main></div></div>
+<dialog id="dlg"><form id="fieldForm"><h3 style="margin-bottom:12px">New field</h3><label>Field name<input name="name" required maxlength="120"></label><label>Farmer<input name="farmer_name" maxlength="120"></label><label>Location<input name="location" maxlength="255"></label><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn ghost" type="button" id="dx">Cancel</button><button class="btn">Save field</button></div></form></dialog>
+<div id="toast" role="status"></div>
+<script>
+const E=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=d=>d?new Date(d).toLocaleString([],{dateStyle:'medium',timeStyle:'short'}):'';
+const M=[{k:'nitrogen',n:'Nitrogen',u:'kg/ha',x:600},{k:'phosphorus',n:'Phosphorus',u:'kg/ha',x:100},{k:'potassium',n:'Potassium',u:'kg/ha',x:600},{k:'organic_matter',n:'Organic matter',u:'%',x:10,c:'o'},{k:'moisture',n:'Moisture',u:'%',x:100,c:'w'}];
+const OPS=['Validation and normalisation (RGB JPEG, EXIF removed)','Colour-cast correction (gentle gray-world)','CLAHE contrast enhancement (lightness channel)','Background removal (GrabCut, skipped if it fails)','Image resizing to 224 × 224'];
+const NAV=[['dashboard','Dashboard','▦'],['analysis','Soil Analysis','⚗'],['crop','Crop Recommendation','❀'],['history','History','↻'],['reports','Reports','☰'],['profile','Profile','☻'],['settings','Settings','⚙']];
+let fields=[],cur=null,sel=null,metric='ph',route='dashboard',online=false;
+const F=()=>fields.find(f=>f.id===cur),tests=()=>fields.flatMap(f=>f.tests.map(t=>({...t,field:f.name}))).sort((a,b)=>b.tested_at.localeCompare(a.tested_at)),imgs=()=>fields.flatMap(f=>f.images.map(i=>({...i,field:f.name}))).sort((a,b)=>b.uploaded_at.localeCompare(a.uploaded_at));
+function toast(m,t){const e=E('toast');e.textContent=m;e.className='show '+(t||'');clearTimeout(toast.h);toast.h=setTimeout(()=>e.className='',4500)}
+async function api(p,o){const r=await fetch(p,o);if(!r.ok){let d={};try{d=await r.json()}catch(_){}const x=d.detail;throw new Error(typeof x==='string'?x:(x&&x[0]&&x[0].msg)||r.statusText)}return r.json()}
+async function load(){try{fields=await api('/fields');await Promise.all(fields.map(async f=>{[f.tests,f.images]=await Promise.all([api(`/fields/${f.id}/soil-tests`),api(`/fields/${f.id}/images`)])}));online=true}catch(e){online=false;toast('Cannot reach the server: '+e.message,'err')}
+ if(!fields.some(f=>f.id===cur))cur=fields.length?fields[0].id:null;render()}
+const soon=(t,p)=>`<div class="card"><h3>${t}</h3><p class="empty">${p}</p></div>`;
+const bars=t=>M.map(m=>`<div class="m ${m.c||''}"><span>${m.n}</span><i><u style="width:${Math.min(100,t[m.k]/m.x*100)}%"></u></i><em>${t[m.k]} ${m.u}</em></div>`).join('');
+const phb=t=>`<div class="ph"><div class="big">${t.ph.toFixed(1)}<small>pH · ${fmt(t.tested_at)}</small></div><div class="ruler"><span class="mark" style="left:${Math.min(100,t.ph/14*100)}%"></span></div></div>`;
+const tbl=(h,r)=>`<div class="tw"><table><tr>${h.map(x=>`<th>${x}</th>`).join('')}</tr>${r.map(x=>`<tr>${x.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</table></div>`;
+const TH=['Date','Field','N','P','K','pH','OM %','Moist. %'],TR=t=>[fmt(t.tested_at),t.field,t.nitrogen,t.phosphorus,t.potassium,t.ph,t.organic_matter,t.moisture];
+const noField='<div class="card empty">Add a field (top right) to get started.</div>';
+const R={
+dashboard(){const T=tests(),I=imgs(),f=F(),lp=fields.filter(x=>x.tests[0]).map(x=>x.tests[0].ph);
+ return `<div class="kpis">${[['Fields',fields.length],['Soil photos',I.length],['Soil tests',T.length],['Average pH',lp.length?(lp.reduce((a,b)=>a+b,0)/lp.length).toFixed(1):'–']].map(([l,v])=>`<div class="kpi"><b>${v}</b><span>${l}</span></div>`).join('')}</div>
+<div class="g2 w"><div class="card"><div style="display:flex;justify-content:space-between"><h3>Trend${f?' – '+esc(f.name):''}</h3><select id="metric" style="width:auto"><option value="ph">pH</option>${M.map(m=>`<option value="${m.k}">${m.n}</option>`).join('')}</select></div><div id="chart"></div></div>
+<div class="card"><h3>Latest soil test</h3>${f&&f.tests[0]?phb(f.tests[0])+bars(f.tests[0]):'<p class="empty">No soil test for this field yet. Record one on the Soil Analysis page.</p>'}</div></div>
+<div class="g2"><div class="card"><h3>Recent soil photos</h3>${I.length?`<div class="gal">${I.slice(0,6).map(i=>`<button data-img="${i.id}"><img loading="lazy" src="/images/${i.id}/file" alt=""><span>${esc(i.field)}</span></button>`).join('')}</div>`:'<p class="empty">No photos yet.</p>'}</div>
+<div class="card"><h3>Recent soil tests</h3>${T.length?tbl(['Date','Field','pH'],T.slice(0,5).map(t=>[fmt(t.tested_at),t.field,t.ph])):'<p class="empty">No tests yet.</p>'}</div></div>`},
+analysis(){const f=F();if(!f)return noField;const si=sel&&f.images.find(i=>i.id===sel.id)?sel:null;
+ return `<div class="g2"><div class="card"><h3>Upload soil image</h3><label class="dz" id="dz"><input type="file" id="file" accept="image/jpeg,image/png" capture="environment"><b id="dzt">Drop a soil photo here, or click to choose</b>JPEG or PNG, up to 10 MB. On a phone this opens the camera.</label>
+${si?`<div style="margin-top:16px"><p class="okb">✓ Image preprocessing completed successfully!</p><div class="cmp"><figure><img src="/images/${si.id}/file" alt="Original"><figcaption>Original</figcaption></figure><figure><img src="/images/${si.id}/preprocessed" alt="Processed"><figcaption>Model input</figcaption></figure></div><div class="dims"><div>Original dimensions<b>${si.width} × ${si.height}</b></div><div>Processed dimensions<b>224 × 224</b></div></div><div class="ops"><h4>Preprocessing operations</h4><ul>${OPS.map(o=>`<li>${o}</li>`).join('')}</ul></div>${(si.warnings||[]).concat(!si.warnings&&si.blur_score<60?['Image looks blurry. Retake for better results.']:[]).map(w=>`<p class="warn">⚠ ${esc(w)}</p>`).join('')}</div>`:''}
+${f.images.length?`<div class="gal">${f.images.map(i=>`<button data-img="${i.id}" class="${si&&si.id===i.id?'on':''}"><img loading="lazy" src="/images/${i.id}/file" alt=""><span>${i.width}×${i.height}</span></button>`).join('')}</div>`:''}</div>
+<div class="card"><h3>Soil test values</h3><form id="testForm"><div class="f2"><label>Nitrogen (kg/ha)<input name="nitrogen" type="number" step="any" min="0" max="1000" required></label><label>Phosphorus (kg/ha)<input name="phosphorus" type="number" step="any" min="0" max="500" required></label><label>Potassium (kg/ha)<input name="potassium" type="number" step="any" min="0" max="2000" required></label><label>pH<input name="ph" type="number" step="any" min="0" max="14" required></label><label>Organic matter (%)<input name="organic_matter" type="number" step="any" min="0" max="100" required></label><label>Moisture (%)<input name="moisture" type="number" step="any" min="0" max="100" required></label></div><button class="btn">Save soil test</button></form>${f.tests[0]?'<h4 style="margin:18px 0 6px">Latest saved</h4>'+phb(f.tests[0])+bars(f.tests[0]):''}</div></div>`},
+crop(){const t=F()&&F().tests[0];return soon('Crop recommendation',`Crop advice is added in Milestone 3, after the soil model is trained. It will use the nutrient values, pH and soil type from the Soil Analysis page.${t?' This field already has a soil test ready to use.':' Record a soil test first.'}`)},
+history(){const T=tests(),I=imgs();return `<div class="card"><h3>Soil tests</h3>${T.length?tbl(TH,T.map(TR)):'<p class="empty">No tests yet.</p>'}</div><div class="card" style="margin-top:16px"><h3>Soil photos</h3>${I.length?tbl(['Uploaded','Field','File','Size','Sharpness'],I.map(i=>[fmt(i.uploaded_at),i.field,i.original_filename||'–',i.width+' × '+i.height,i.blur_score<60?'Blurry':'Sharp'])):'<p class="empty">No photos yet.</p>'}</div>`},
+reports(){return `<div class="card"><h3>Reports</h3><p class="empty">Download your data for the project report.</p><button class="btn" data-csv="t">Soil tests (CSV)</button> <button class="btn ghost" data-csv="i">Photo log (CSV)</button></div>`},
+profile(){return soon('Profile','Accounts and sign-in are planned for later. For now this dashboard works without a login.')},
+settings(){return `<div class="card"><h3>System</h3>${tbl(['Item','Value'],[['API',online?'Online':'Offline'],['Fields',fields.length],['Photos',imgs().length],['Soil tests',tests().length],['Interactive API docs','/docs']])}</div>`}};
+function render(){
+ E('nav').innerHTML=NAV.map(([k,n,i])=>`<a href="#${k}" class="${k===route?'on':''}"><span>${i}</span>${n}</a>`).join('');
+ E('title').textContent=(NAV.find(n=>n[0]===route)||[])[1];E('status').textContent=online?'API online':'API offline';E('status').className='pill '+(online?'ok':'bad');
+ E('fsel').innerHTML=fields.length?fields.map(f=>`<option value="${f.id}" ${f.id===cur?'selected':''}>${esc(f.name)}</option>`).join(''):'<option>No fields</option>';
+ E('view').innerHTML=R[route]();if(route==='dashboard'){E('metric').value=metric;draw()}}
+function draw(){const f=F(),el=E('chart'),d=f?[...f.tests].reverse():[],m=M.find(x=>x.k===metric),n=m?m.n:'pH';
+ if(d.length<2){el.innerHTML=`<p class="empty">Record at least two soil tests to see how ${n} changes over time.</p>`;return}
+ const v=d.map(x=>x[metric]),lo=Math.min(...v),hi=Math.max(...v),p=(hi-lo)||1,a=lo-p*.2,b=hi+p*.2,W=520,H=210,L=44,B=24,X=i=>L+i*(W-L-12)/(d.length-1),Y=x=>H-B-(x-a)/(b-a)*(H-B-12);
+ el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" style="width:100%" role="img" aria-label="${n} over time"><g stroke="#e0e6dd" fill="#66756b" font-size="11">${[a,(a+b)/2,b].map(g=>`<line x1="${L}" x2="${W-6}" y1="${Y(g)}" y2="${Y(g)}"/><text x="${L-6}" y="${Y(g)+4}" text-anchor="end" stroke="none">${g.toFixed(1)}</text>`).join('')}</g><polyline fill="none" stroke="#2d6a4f" stroke-width="2.5" points="${v.map((x,i)=>X(i)+','+Y(x)).join(' ')}"/>${v.map((x,i)=>`<circle cx="${X(i)}" cy="${Y(x)}" r="4" fill="#2d6a4f"><title>${fmt(d[i].tested_at)}: ${x}</title></circle>`).join('')}</svg>`}
+async function upload(file){if(!file||!cur)return;const fd=new FormData();fd.append('file',file);E('dzt').textContent='Uploading and preprocessing…';
+ try{const r=await api(`/fields/${cur}/images`,{method:'POST',body:fd});sel={...r.image,warnings:r.warnings};toast('Photo saved');await load()}catch(e){toast(e.message,'err');E('dzt').textContent='Upload failed. Choose another photo.'}}
+function csv(n,rows){const b=new Blob([rows.map(r=>r.map(c=>`"${String(c??'').replace(/"/g,'""')}"`).join(',')).join('\n')],{type:'text/csv'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;a.click()}
+function go(){route=(location.hash||'#dashboard').slice(1);if(!R[route])route='dashboard';render()}
+addEventListener('hashchange',go);
+document.addEventListener('click',e=>{const g=e.target.closest('[data-img]'),c=e.target.closest('[data-csv]');
+ if(g){const i=imgs().find(x=>x.id==g.dataset.img);sel=i;cur=fields.find(f=>f.name===i.field&&f.id===i.field_id)?i.field_id:cur;cur=i.field_id;if(location.hash==='#analysis')render();else location.hash='#analysis'}
+ if(c)c.dataset.csv==='t'?csv('soil_tests.csv',[TH,...tests().map(TR)]):csv('soil_photos.csv',[['Uploaded','Field','File','Width','Height','Blur score'],...imgs().map(i=>[i.uploaded_at,i.field,i.original_filename,i.width,i.height,i.blur_score])])});
+E('fsel').onchange=e=>{cur=+e.target.value;sel=null;render()};E('addf').onclick=()=>E('dlg').showModal();E('dx').onclick=()=>E('dlg').close();
+document.addEventListener('change',e=>{if(e.target.id==='file')upload(e.target.files[0]);if(e.target.id==='metric'){metric=e.target.value;draw()}});
+document.addEventListener('dragover',e=>{if(e.target.closest('#dz')){e.preventDefault();E('dz').classList.add('over')}});
+document.addEventListener('drop',e=>{if(e.target.closest('#dz')){e.preventDefault();upload(e.dataTransfer.files[0])}});
+document.addEventListener('submit',async e=>{e.preventDefault();const f=e.target,o={},isT=f.id==='testForm';new FormData(f).forEach((v,k)=>o[k]=isT?parseFloat(v):(v||null));
+ try{if(isT){await api(`/fields/${cur}/soil-tests`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(o)});toast('Soil test saved')}
+  else{const r=await api('/fields',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(o)});cur=r.id;sel=null;f.reset();E('dlg').close();toast('Field saved')}
+  await load()}catch(x){toast(x.message,'err')}});
+go();load();
+</script></body></html>
+ 
