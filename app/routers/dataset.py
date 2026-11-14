@@ -38,7 +38,7 @@ def get_dataset_status():
     total_proc = 0
     if DATA_PROC_DIR.exists():
         total_proc = sum(
-            1 for f in DATA_PROC_DIR.iterdir()
+            1 for f in DATA_PROC_DIR.rglob("*")
             if f.is_file() and f.suffix.lower() in VALID_EXTENSIONS
         )
 

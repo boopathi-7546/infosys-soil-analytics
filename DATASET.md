@@ -14,13 +14,18 @@ This guide describes the dataset structure, public source attribution, OpenCV in
 ```text
 data/
   raw/
-    black_soil/        <- High organic / vertisol samples
-    red_soil/          <- Iron-rich alfisol / lateritic samples
-    alluvial_soil/     <- Silt / loamy riverine soils
-    laterite_soil/     <- Deep weathering tropical soils
-    sandy_soil/        <- Coarse textured, low retention soils
-    clay_soil/         <- Fine textured, heavy clay soils
-  processed/           <- Preprocessed 224x224 RGB images
+    alluvial_soil/     <- Silt / loamy riverine soils (342 images)
+    black_soil/        <- High organic / vertisol samples (355 images)
+    clay_soil/         <- Fine-textured, heavy clay soils (119 images)
+    laterite_soil/     <- Deep weathering tropical soils (214 images)
+    red_soil/          <- Iron-rich alfisol / lateritic samples (265 images)
+    sandy_soil/        <- Coarse textured, low retention soils (60 images)
+  processed/
+    manifest.csv       <- Complete inventory mapping splits, hashes, and augmentation kinds
+    train/             <- Training split (70% original + 3x augmented copies per image)
+    val/               <- Validation split (15% original images)
+    test/              <- Test split (15% original images)
+    7_proc.jpg         <- Pre-existing system test sample (preserved)
   sources.csv          <- Attribution, licenses, and catalog records
 ```
 
@@ -28,28 +33,33 @@ data/
 
 ## 2. Public Dataset Sources & Licensing
 
-All public data must be documented in `data/sources.csv`:
+All public data is documented in `data/sources.csv`:
 
-| Source | Platform | License | Categories | Description |
-|---|---|---|---|---|
-| Soil Types Classification | Kaggle | CC0: Public Domain | Black, Red, Alluvial, Clay | Diverse field captures across Indian agro-ecological zones |
-| Soil Type Identification | Roboflow Universe | CC BY 4.0 | Sandy, Laterite, Black | Annotated multi-angle soil imagery under natural sunlight |
-| NBSS&LUP Soil Resource Database | ICAR (Govt. of India) | Open Data (India) | Alluvial, Black, Red, Laterite | Authoritative morphological benchmarks |
-| Soil Survey Image Gallery | USDA-NRCS | Public Domain | Sandy, Clay, Alluvial | Standard soil pedology reference imagery |
+| Source | Platform | License | Categories | Downloaded | Description |
+|---|---|---|---|---|---|
+| Soil Classification Research Dataset (Phantom-fs / Sheth et al. 2025) | GitHub | CC BY-NC 4.0 | Alluvial, Black, Laterite, Red | 900 | Peer-reviewed agricultural research dataset (*Engineering Applications of AI*) |
+| Soil Classification Dataset (Prasansha Satpathy) | Kaggle | CC0: Public Domain | Clay, Black, Alluvial, Red | 395 | Benchmark Indian soil dataset (119 Clay, 130 Black, 117 Alluvial, 40 Red) |
+| Wikimedia Commons Soil Pedology Archive | Wikimedia | Open Licenses (CC BY-SA / CC BY / PD) | Sandy Soil | 60 | Field captures of Arenosols and sandy agricultural soils with verified attribution |
+| Soil Type Identification | Roboflow Universe | CC BY 4.0 | Sandy, Laterite, Black | 0 | Requires private Roboflow API key / account; skipped to strictly comply with sanctioned auth policies |
+| ICAR-NBSS&LUP Soil Resource Database | ICAR (Govt. of India) | Government Open Data | Alluvial, Black, Red, Laterite | 0 | Requires institutional login and manual clearance; documented without bypassing |
+| USDA-NRCS Soil Survey Image Gallery | USDA-NRCS | Public Domain (US Gov) | Sandy, Clay, Alluvial | 0 | Reference taxonomy archives for pedon morphology validation |
 
 ---
 
-## 3. How to Add New Labelled Soil Images
+## 3. Dataset Distribution & Stratified Partitioning
 
-1. Take photographs using an Android mobile phone or digital camera in natural, indirect daylight.
-2. Hold the camera perpendicular to the soil surface at a distance of **15–25 cm**.
-3. Clear away large stones, plant foliage, and debris from the frame.
-4. Save the files into the appropriate class directory:
-   ```text
-   data/raw/black_soil/img_001.jpg
-   data/raw/red_soil/img_001.jpg
-   ```
-5. Update `data/sources.csv` with the collection date, contributor name, and source notes.
+The raw dataset contains **1,355 unique, real photographic soil images** distributed across all 6 target classes.
+When partitioned with `scripts/prepare_dataset.py` (70% Train, 15% Val, 15% Test with `--augment 3`):
+
+| Soil Category | Raw Originals | Train (Original) | Val (Original) | Test (Original) | Train (Augmented) | Total Processed |
+|---|---|---|---|---|---|---|
+| **Alluvial Soil** | 342 | 239 | 51 | 52 | 717 | 1,059 |
+| **Black Soil** | 355 | 248 | 53 | 54 | 744 | 1,099 |
+| **Clay Soil** | 119 | 83 | 18 | 18 | 249 | 368 |
+| **Laterite Soil** | 214 | 149 | 32 | 33 | 447 | 661 |
+| **Red Soil** | 265 | 185 | 40 | 40 | 555 | 820 |
+| **Sandy Soil** | 60 | 42 | 9 | 9 | 126 | 186 |
+| **Total** | **1,355** | **946** | **203** | **206** | **2,838** | **4,193** (+ 1 preserved sample) |
 
 ---
 
@@ -62,8 +72,9 @@ python scripts/prepare_dataset.py --raw data/raw --out data/processed --augment 
 ```
 
 ### Pipeline Safety Guards:
-- **No Data Leakage**: Train/validation/test split (70/15/15) is executed **before** any image augmentation.
+- **Zero Data Leakage**: Train/validation/test split (70/15/15) is executed **before** any image augmentation. No original source image appears in more than one partition, and all augmented images exist solely in `train/`.
 - **Deduplication**: Exact duplicate files are filtered via SHA-256 hashing.
+- **Corrupt File Filter**: Images failing OpenCV decoding are discarded.
 - **Decompression Bomb Guard**: Rejects malformed images exceeding 50 million pixels.
 - **Laplacian Variance Quality Filter**: Rejects unreadable or severely blurred images (< 40 variance).
 - **OpenCV Normalization**: Applies partial Gray-World color balancing, CLAHE illumination correction, and bilinear resizing to 224 × 224 pixels.
