@@ -4,51 +4,59 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
 from . import config
 from .database import Base, engine
-from .routers import dataset, fields, images, soil_tests
+from .routers import auth, dataset, fields, images, soil_tests
 
 STATIC_DIR = Path(__file__).parent / "static"
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Ensure directories exist
     config.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     Path("data/processed").mkdir(parents=True, exist_ok=True)
+    
+    # Safe schema creation & migration
     Base.metadata.create_all(engine)
+    try:
+        from scripts.migrate_add_farmer_auth import run_migration
+        run_migration(engine)
+    except Exception as e:
+        print(f"[STARTUP] Warning during schema migration check: {e}")
     yield
 
 
 app = FastAPI(
-    title="AI-Powered Soil Analytics System",
-    description="Nutrient Assessment, OpenCV Preprocessing, and Intelligent Crop Advisory.",
-    version="1.0.0",
+    title="SoilSense AI — Soil Analytics & Crop Advisory System",
+    description="Secure Farmer Authentication, Soil Nutrient Assessment, and Intelligent Crop Advisory.",
+    version="1.1.0",
     lifespan=lifespan,
 )
 
-# CORS configuration for mobile and web clients
+# CORS configuration: avoids unrestricted credentialed access with wildcards
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Static file mounts
-if config.UPLOAD_DIR.exists():
-    app.mount("/uploads", StaticFiles(directory=str(config.UPLOAD_DIR), html=False), name="uploads")
+# NOTE: Unrestricted public static mount of /uploads has been removed for privacy & security.
+# Images are securely streamed via the authenticated /api/images/{id}/file endpoint.
 
-# Include routers without prefix (for backwards compatibility with existing clients/tests)
+# Include routers without prefix (backward compatibility)
+app.include_router(auth.router)
 app.include_router(fields.router)
 app.include_router(images.router)
 app.include_router(soil_tests.router)
 app.include_router(dataset.router)
 
-# Include routers with /api prefix (standard REST endpoints)
+# Include routers with /api prefix (standard REST convention)
+app.include_router(auth.router, prefix="/api")
 app.include_router(fields.router, prefix="/api")
 app.include_router(images.router, prefix="/api")
 app.include_router(soil_tests.router, prefix="/api")

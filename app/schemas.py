@@ -1,9 +1,42 @@
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
+# ---------------------------------------------------------------------------
+# Farmer Authentication Schemas
+# ---------------------------------------------------------------------------
+class FarmerRegisterIn(BaseModel):
+    full_name: str = Field(min_length=2, max_length=120, description="Farmer's full name")
+    email: EmailStr = Field(description="Unique email address")
+    password: str = Field(min_length=6, max_length=72, description="Password (min 6 characters)")
+
+
+class FarmerLoginIn(BaseModel):
+    email: EmailStr = Field(description="Registered email address")
+    password: str = Field(min_length=1, description="Password")
+
+
+class FarmerOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    full_name: str
+    email: str
+    is_active: bool
+    created_at: datetime
+
+
+class TokenOut(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int
+    farmer: FarmerOut
+
+
+# ---------------------------------------------------------------------------
+# Farm Field Schemas
+# ---------------------------------------------------------------------------
 class FieldIn(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     farmer_name: str | None = Field(default=None, max_length=120)
@@ -13,6 +46,7 @@ class FieldIn(BaseModel):
 class FieldOut(FieldIn):
     model_config = ConfigDict(from_attributes=True)
     id: int
+    farmer_id: int | None = None
     created_at: datetime
 
 
@@ -29,6 +63,9 @@ class FieldStats(BaseModel):
     avg_moisture: float | None
 
 
+# ---------------------------------------------------------------------------
+# Soil Test Schemas
+# ---------------------------------------------------------------------------
 class SoilTestIn(BaseModel):
     nitrogen: float = Field(ge=0, le=500, description="Available nitrogen, kg/ha")
     phosphorus: float = Field(ge=0, le=150, description="Available phosphorus, kg/ha")
@@ -55,6 +92,9 @@ class AdvisoryOut(BaseModel):
     warnings: list[str]
 
 
+# ---------------------------------------------------------------------------
+# Image Schemas
+# ---------------------------------------------------------------------------
 class ImageOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
@@ -73,7 +113,6 @@ class ImageUploadOut(BaseModel):
     warnings: list[str]
 
 
-# New simplified upload response as required by task spec
 class ImageUploadResponse(BaseModel):
     image_id: int
     filename: str
@@ -96,6 +135,9 @@ class PreprocessResult(BaseModel):
     rejection_reason: str | None = None
 
 
+# ---------------------------------------------------------------------------
+# Dataset Schemas
+# ---------------------------------------------------------------------------
 class DatasetStatusOut(BaseModel):
     soil_types: list[dict[str, Any]]
     total_raw_images: int

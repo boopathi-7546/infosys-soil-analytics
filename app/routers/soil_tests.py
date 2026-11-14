@@ -1,4 +1,4 @@
-"""Soil test CRUD + advisory engine.
+"""Soil test CRUD + advisory engine with farmer-specific authentication and data isolation.
 
 Health score formula (0–100):
   Scores each parameter on how close it is to the ideal range, then takes a
@@ -16,13 +16,15 @@ Health score formula (0–100):
        + potassium_score * 15 + om_score * 15 + moisture_score * 10)
       , 2)
 """
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select, func as sa_func
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import func as sa_func, select
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import Field, SoilTest
+from ..models import Farmer, Field, SoilTest
 from ..schemas import AdvisoryOut, SoilTestIn, SoilTestOut
+from ..services.auth import get_current_farmer
+from .fields import get_farmer_field_or_404
 
 router = APIRouter(tags=["soil-tests"])
 
@@ -123,9 +125,8 @@ def _make_advisory(test: SoilTest, score: float) -> AdvisoryOut:
     if not crops:
         crops.append("Consult a local agronomist — conditions are outside standard thresholds.")
 
-    # deduplicate preserving order
     seen: set[str] = set()
-    unique_crops = [c for c in crops if not (c in seen or seen.add(c))]  # type: ignore[func-returns-value]
+    unique_crops = [c for c in crops if not (c in seen or seen.add(c))]
 
     return AdvisoryOut(
         soil_test_id=test.id,
@@ -142,16 +143,31 @@ def _enrich(obj: SoilTest) -> SoilTestOut:
     return out
 
 
+def _get_farmer_soil_test_or_404(test_id: int, current_farmer: Farmer, db: Session) -> SoilTest:
+    """Retrieve soil test verifying that the associated field belongs to the current farmer."""
+    obj = db.get(SoilTest, test_id)
+    if not obj:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Soil test not found")
+    # Verify ownership of the parent field
+    if obj.field and obj.field.farmer_id is not None and obj.field.farmer_id != current_farmer.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Soil test not found")
+    return obj
+
+
 # ---------------------------------------------------------------------------
-# Routes
+# Routes (Authenticated)
 # ---------------------------------------------------------------------------
 
-@router.post("/fields/{field_id}/soil-tests", response_model=SoilTestOut, status_code=201)
-def create_soil_test(field_id: int, body: SoilTestIn, db: Session = Depends(get_db)):
-    """Stores laboratory soil parameters (N, P, K, pH, organic matter, moisture) for a field."""
-    if not db.get(Field, field_id):
-        raise HTTPException(404, "Field not found")
-    obj = SoilTest(field_id=field_id, **body.model_dump())
+@router.post("/fields/{field_id}/soil-tests", response_model=SoilTestOut, status_code=status.HTTP_201_CREATED)
+def create_soil_test(
+    field_id: int,
+    body: SoilTestIn,
+    current_farmer: Farmer = Depends(get_current_farmer),
+    db: Session = Depends(get_db),
+):
+    """Stores laboratory soil parameters for a field owned by the authenticated farmer."""
+    field = get_farmer_field_or_404(field_id, current_farmer, db)
+    obj = SoilTest(field_id=field.id, **body.model_dump())
     db.add(obj)
     db.commit()
     db.refresh(obj)
@@ -159,42 +175,55 @@ def create_soil_test(field_id: int, body: SoilTestIn, db: Session = Depends(get_
 
 
 @router.get("/fields/{field_id}/soil-tests", response_model=list[SoilTestOut])
-def list_soil_tests(field_id: int, db: Session = Depends(get_db)):
-    """History for one field, newest first (used later for degradation trend analysis)."""
-    if not db.get(Field, field_id):
-        raise HTTPException(404, "Field not found")
+def list_soil_tests(
+    field_id: int,
+    current_farmer: Farmer = Depends(get_current_farmer),
+    db: Session = Depends(get_db),
+):
+    """History for one field (strictly owned by authenticated farmer), newest first."""
+    field = get_farmer_field_or_404(field_id, current_farmer, db)
     rows = db.scalars(
         select(SoilTest)
-        .where(SoilTest.field_id == field_id)
+        .where(SoilTest.field_id == field.id)
         .order_by(SoilTest.tested_at.desc(), SoilTest.id.desc())
     ).all()
     return [_enrich(r) for r in rows]
 
 
 @router.get("/soil-tests", response_model=list[SoilTestOut])
-def list_soil_tests_by_field(field_id: int, db: Session = Depends(get_db)):
-    """GET /api/soil-tests/?field_id=X — flat query without field path parameter."""
+def list_soil_tests_by_field(
+    field_id: int,
+    current_farmer: Farmer = Depends(get_current_farmer),
+    db: Session = Depends(get_db),
+):
+    """GET /api/soil-tests/?field_id=X — flat query with farmer ownership check."""
+    field = get_farmer_field_or_404(field_id, current_farmer, db)
     rows = db.scalars(
         select(SoilTest)
-        .where(SoilTest.field_id == field_id)
+        .where(SoilTest.field_id == field.id)
         .order_by(SoilTest.tested_at.desc(), SoilTest.id.desc())
     ).all()
     return [_enrich(r) for r in rows]
 
 
 @router.get("/soil-tests/{test_id}", response_model=SoilTestOut)
-def get_soil_test(test_id: int, db: Session = Depends(get_db)):
-    obj = db.get(SoilTest, test_id)
-    if not obj:
-        raise HTTPException(404, "Soil test not found")
+def get_soil_test(
+    test_id: int,
+    current_farmer: Farmer = Depends(get_current_farmer),
+    db: Session = Depends(get_db),
+):
+    """Retrieve single soil test (strictly owned by authenticated farmer)."""
+    obj = _get_farmer_soil_test_or_404(test_id, current_farmer, db)
     return _enrich(obj)
 
 
 @router.get("/soil-tests/{test_id}/advisory", response_model=AdvisoryOut)
-def get_advisory(test_id: int, db: Session = Depends(get_db)):
-    """Rule-based crop recommendations derived from recorded soil parameters."""
-    obj = db.get(SoilTest, test_id)
-    if not obj:
-        raise HTTPException(404, "Soil test not found")
+def get_advisory(
+    test_id: int,
+    current_farmer: Farmer = Depends(get_current_farmer),
+    db: Session = Depends(get_db),
+):
+    """Rule-based crop recommendations derived from recorded soil parameters (strictly owned)."""
+    obj = _get_farmer_soil_test_or_404(test_id, current_farmer, db)
     score = _compute_health_score(obj)
     return _make_advisory(obj, score)

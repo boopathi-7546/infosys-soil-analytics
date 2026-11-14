@@ -26,6 +26,10 @@
   --status-yellow-bg: #FEF3C7;
   --status-red: #B91C1C;
   --status-red-bg: #FEE2E2;
+  --coral: #FF6B4A;
+  --coral-hover: #E85835;
+  --coral-light: #FFF0EB;
+  --coral-shadow: rgba(255, 107, 74, 0.3);
   --shadow: 0 4px 20px rgba(27, 67, 50, 0.06);
   --shadow-lg: 0 10px 30px rgba(27, 67, 50, 0.12);
   --radius: 14px;
@@ -917,11 +921,323 @@ dialog::backdrop {
   }
 }
 
+/* SaaS Coral-Orange Action Buttons */
+.btn-coral {
+  background: var(--coral);
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 14px var(--coral-shadow);
+  border: none;
+}
+.btn-coral:hover:not(:disabled) {
+  background: var(--coral-hover);
+  color: #FFFFFF !important;
+  transform: translateY(-1px);
+}
+.btn-coral:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* Modern SaaS Farmer Auth Screen */
+.auth-screen {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 20% 20%, #FAF7F0 0%, #EFE8DC 100%);
+  padding: 24px 16px;
+  position: relative;
+  z-index: 999;
+}
+
+.auth-card {
+  background: #FFFFFF;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: 0 20px 48px rgba(27, 67, 50, 0.12);
+  width: 100%;
+  max-width: 440px;
+  padding: 36px 32px;
+  animation: authFadeIn 0.35s ease;
+}
+
+@keyframes authFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.auth-logo {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--primary);
+  color: #FFFFFF;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  margin-bottom: 12px;
+  box-shadow: 0 8px 20px rgba(27, 67, 50, 0.22);
+}
+
+.auth-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--primary);
+  letter-spacing: -0.4px;
+}
+
+.auth-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.auth-tabs {
+  display: flex;
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 22px;
+  gap: 4px;
+  border: 1px solid var(--border);
+}
+
+.auth-tab-btn {
+  flex: 1;
+  padding: 10px 14px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 13px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.auth-tab-btn.active {
+  background: #FFFFFF;
+  color: var(--primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.auth-alert {
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  margin-bottom: 18px;
+  display: none;
+  line-height: 1.4;
+}
+
+.auth-alert.error {
+  display: block;
+  background: #FEE2E2;
+  color: #991B1B;
+  border: 1px solid #FCA5A5;
+}
+
+.auth-alert.success {
+  display: block;
+  background: #D8F3DC;
+  color: #1B4332;
+  border: 1px solid #74C69D;
+}
+
+.password-input-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-group .form-input {
+  padding-right: 44px;
+  width: 100%;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  color: var(--text-muted);
+  line-height: 1;
+}
+
+.password-toggle:hover {
+  color: var(--text-main);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.form-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Farmer Badge in Top Bar */
+.farmer-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 4px 6px;
+  background: #FFFFFF;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  font-size: 13px;
+}
+
+.farmer-avatar-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.farmer-text-col {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  text-align: left;
+}
+
+.farmer-name-label {
+  font-weight: 600;
+  color: var(--text-main);
+  font-size: 12px;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.farmer-email-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.btn-signout {
+  padding: 5px 10px;
+  font-size: 12px;
+  min-height: 32px;
+  background: #FFF1F0;
+  color: #B91C1C;
+  border: 1px solid #FECACA;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-signout:hover {
+  background: #FEE2E2;
+}
+
 </style>
 </head>
 <body>
 
-<div class="app-container">
+<!-- Authentication Screen (Sign In & Register) -->
+<div id="authScreen" class="auth-screen">
+  <div class="auth-card">
+    <div class="auth-header">
+      <div class="auth-logo">🌱</div>
+      <h2 class="auth-title">SoilSense AI</h2>
+      <p class="auth-subtitle">AI-Powered Soil Analytics & Smart Crop Advisory</p>
+    </div>
+
+    <div class="auth-tabs" role="tablist">
+      <button class="auth-tab-btn active" id="tabBtnLogin" type="button">Sign In</button>
+      <button class="auth-tab-btn" id="tabBtnRegister" type="button">Register Farmer</button>
+    </div>
+
+    <div id="authAlert" class="auth-alert" role="alert"></div>
+
+    <!-- Sign In Form -->
+    <form id="authLoginForm" autocomplete="on">
+      <div class="form-group" style="margin-bottom: 14px;">
+        <label class="form-label" for="loginEmail">Email Address *</label>
+        <input type="email" id="loginEmail" name="email" class="form-input" required placeholder="farmer@example.com" autocomplete="email">
+      </div>
+
+      <div class="form-group" style="margin-bottom: 20px;">
+        <label class="form-label" for="loginPassword">Password *</label>
+        <div class="password-input-group">
+          <input type="password" id="loginPassword" name="password" class="form-input" required placeholder="Enter your password" autocomplete="current-password">
+          <button type="button" class="password-toggle" id="btnToggleLoginPass" title="Toggle password visibility">👁️</button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-coral" id="btnAuthLoginSubmit" style="width: 100%;">
+        <span class="btn-text">Sign In to Dashboard</span>
+      </button>
+    </form>
+
+    <!-- Registration Form -->
+    <form id="authRegisterForm" style="display: none;" autocomplete="on">
+      <div class="form-group" style="margin-bottom: 14px;">
+        <label class="form-label" for="regFullName">Full Name *</label>
+        <input type="text" id="regFullName" name="full_name" class="form-input" required placeholder="e.g. Ramesh Kumar" maxlength="120" autocomplete="name">
+      </div>
+
+      <div class="form-group" style="margin-bottom: 14px;">
+        <label class="form-label" for="regEmail">Email Address *</label>
+        <input type="email" id="regEmail" name="email" class="form-input" required placeholder="farmer@example.com" autocomplete="email">
+      </div>
+
+      <div class="form-group" style="margin-bottom: 14px;">
+        <label class="form-label" for="regPassword">Password *</label>
+        <div class="password-input-group">
+          <input type="password" id="regPassword" name="password" class="form-input" required minlength="8" placeholder="Create a password (min 8 chars)" autocomplete="new-password">
+          <button type="button" class="password-toggle" id="btnToggleRegPass" title="Toggle password visibility">👁️</button>
+        </div>
+        <div class="form-hint">At least 8 characters</div>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 20px;">
+        <label class="form-label" for="regConfirmPassword">Confirm Password *</label>
+        <div class="password-input-group">
+          <input type="password" id="regConfirmPassword" name="confirm_password" class="form-input" required minlength="8" placeholder="Re-enter your password" autocomplete="new-password">
+          <button type="button" class="password-toggle" id="btnToggleRegConfirm" title="Toggle password visibility">👁️</button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-coral" id="btnAuthRegSubmit" style="width: 100%;">
+        <span class="btn-text">Create Farmer Account</span>
+      </button>
+    </form>
+  </div>
+</div>
+
+<div class="app-container" style="display: none;">
   <!-- Desktop Sidebar Navigation -->
   <aside class="sidebar">
     <div class="brand-header">
@@ -964,7 +1280,10 @@ dialog::backdrop {
     </nav>
 
     <div class="sidebar-footer">
-      <span>v1.0 • PostgreSQL</span>
+      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 4px;">
+        <span>v1.0 • PostgreSQL</span>
+        <button type="button" id="btnSidebarLogout" class="btn-signout" style="padding: 2px 8px; font-size: 11px; display: none;">Sign Out 🚪</button>
+      </div>
       <a href="/docs" target="_blank">API Docs</a>
     </div>
   </aside>
@@ -990,6 +1309,16 @@ dialog::backdrop {
           <option value="hi">हिंदी (Hindi)</option>
           <option value="kn">ಕನ್ನಡ (Kannada)</option>
         </select>
+
+        <!-- Farmer Profile Badge & Sign Out -->
+        <div class="farmer-badge" id="farmerBadge" style="display: none;">
+          <div class="farmer-avatar-circle" id="farmerAvatar">👨‍🌾</div>
+          <div class="farmer-text-col">
+            <span class="farmer-name-label" id="farmerNameLabel">Farmer</span>
+            <span class="farmer-email-label" id="farmerEmailLabel">farmer@mail.com</span>
+          </div>
+          <button type="button" class="btn-signout" id="btnLogout" title="Sign Out">Sign Out 🚪</button>
+        </div>
 
         <!-- System Connection Status -->
         <span id="systemStatus" class="status-pill online">● API Connected</span>
@@ -1099,6 +1428,9 @@ const I18N = {
     btn_submit_test: "Submit & Analyze Soil",
     health_score_title: "Overall Soil Health Score",
     disclaimer: "Scientific Note: Soil health scores and crop recommendations are derived from standard agronomic benchmarks. Always calibrate with local agricultural extension officers.",
+    auth_sign_in: "Sign In",
+    auth_register: "Register Farmer",
+    auth_logout: "Sign Out",
   },
   ta: {
     app_title: "மண் பகுப்பாய்வு",
@@ -1141,6 +1473,9 @@ const I18N = {
     btn_submit_test: "மண் ஆய்வை சமர்ப்பிக்கவும்",
     health_score_title: "ஒட்டுமொத்த மண் ஆரோக்கிய மதிப்பு",
     disclaimer: "அறிவியல் குறிப்பு: மண் நல அறிக்கைகள் மற்றும் பயிர் பரிந்துரைகள் நிலையான வேளாண் அறிவியல் அளவீடுகளை அடிப்படையாகக் கொண்டவை.",
+    auth_sign_in: "உள்நுழைக",
+    auth_register: "விவசாயி பதிவு",
+    auth_logout: "வெளியேறு",
   },
   hi: {
     app_title: "मृदा विश्लेषण",
@@ -1183,6 +1518,9 @@ const I18N = {
     btn_submit_test: "परीक्षण जमा करें",
     health_score_title: "समग्र मृदा स्वास्थ्य स्कोर",
     disclaimer: "वैज्ञानिक नोट: मृदा स्वास्थ्य स्कोर और फसल सिफारिशें कृषि अनुसंधान मानकों पर आधारित हैं।",
+    auth_sign_in: "साइन इन करें",
+    auth_register: "किसान पंजीकरण",
+    auth_logout: "लॉग आउट",
   },
   kn: {
     app_title: "ಮಣ್ಣು ವಿಶ್ಲೇಷಣೆ",
@@ -1225,6 +1563,9 @@ const I18N = {
     btn_submit_test: "ವಿಶ್ಲೇಷಣೆಯನ್ನು ಸಲ್ಲಿಸಿ",
     health_score_title: "ಸಮಗ್ರ ಮಣ್ಣಿನ ಆರೋಗ್ಯ ಅಂಕ",
     disclaimer: "ವೈಜ್ಞಾನಿಕ ಸೂಚನೆ: ಮಣ್ಣಿನ ಆರೋಗ್ಯ ಅಂಕಗಳು ಮತ್ತು ಬೆಳೆ ಶಿಫಾರಸುಗಳು ಕೃಷಿ ವಿಜ್ಞಾನ ಮಾರ್ಗಸೂಚಿಗಳನ್ನು ಆಧರಿಸಿವೆ.",
+    auth_sign_in: "ಸೈನ್ ಇನ್",
+    auth_register: "ರೈತರ ನೋಂದಣಿ",
+    auth_logout: "ಸೈನ್ ಔಟ್",
   }
 };
 
@@ -1242,9 +1583,10 @@ function applyTranslations() {
 }
 
 // ============================================================================
-// APPLICATION STATE & API CLIENT
+// APPLICATION STATE, TOKEN MANAGEMENT & API CLIENT
 // ============================================================================
 let state = {
+  currentFarmer: null,
   fields: [],
   activeFieldId: null,
   activeRoute: 'home',
@@ -1255,7 +1597,48 @@ let state = {
   capturedBase64: null,
 };
 
+function getAuthToken() {
+  try {
+    return localStorage.getItem('soilsense_token') || null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function setAuthToken(token) {
+  try {
+    if (token) {
+      localStorage.setItem('soilsense_token', token);
+    } else {
+      localStorage.removeItem('soilsense_token');
+    }
+  } catch (e) {
+    console.error('Storage error:', e);
+  }
+}
+
+function clearAuthToken() {
+  try {
+    localStorage.removeItem('soilsense_token');
+  } catch (_) {}
+}
+
+function authImgUrl(url) {
+  if (!url) return '';
+  const token = getAuthToken();
+  if (!token) return url;
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}token=${encodeURIComponent(token)}`;
+}
+
 async function fetchApi(url, options = {}) {
+  const token = getAuthToken();
+  const headers = options.headers ? { ...options.headers } : {};
+  if (token && !headers['Authorization'] && !headers['authorization']) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  options.headers = headers;
+
   try {
     const res = await fetch(url, options);
     if (!res.ok) {
@@ -1264,6 +1647,17 @@ async function fetchApi(url, options = {}) {
         const errJson = await res.json();
         errText = errJson.detail || errJson.message || JSON.stringify(errJson);
       } catch (_) {}
+
+      // Automatically handle token expiration or unauthorized access
+      const isAuthRoute = url.includes('/auth/login') || url.includes('/auth/register');
+      if (res.status === 401 && !isAuthRoute) {
+        clearAuthToken();
+        state.currentFarmer = null;
+        updateFarmerUI(null);
+        showAuthScreen('login', 'Your session has expired. Please sign in again.');
+        throw new Error(errText || 'Session expired');
+      }
+
       throw new Error(errText);
     }
     if (res.status === 204) return null;
@@ -1282,19 +1676,303 @@ function showToast(message, type = 'info') {
 }
 
 // ============================================================================
+// AUTHENTICATION UI & EVENT HANDLERS
+// ============================================================================
+function showAuthScreen(mode = 'login', initialMessage = null) {
+  const authScreen = document.getElementById('authScreen');
+  const appContainer = document.querySelector('.app-container');
+  if (authScreen) authScreen.style.display = 'flex';
+  if (appContainer) appContainer.style.display = 'none';
+
+  switchAuthTab(mode);
+  if (initialMessage) {
+    showAuthAlert(initialMessage, mode === 'login' ? 'success' : 'error');
+  } else {
+    hideAuthAlert();
+  }
+}
+
+function showAppScreen() {
+  const authScreen = document.getElementById('authScreen');
+  const appContainer = document.querySelector('.app-container');
+  if (authScreen) authScreen.style.display = 'none';
+  if (appContainer) appContainer.style.display = 'flex';
+}
+
+function switchAuthTab(tab) {
+  const tabBtnLogin = document.getElementById('tabBtnLogin');
+  const tabBtnRegister = document.getElementById('tabBtnRegister');
+  const loginForm = document.getElementById('authLoginForm');
+  const regForm = document.getElementById('authRegisterForm');
+
+  hideAuthAlert();
+
+  if (tab === 'register') {
+    tabBtnLogin.classList.remove('active');
+    tabBtnRegister.classList.add('active');
+    loginForm.style.display = 'none';
+    regForm.style.display = 'block';
+  } else {
+    tabBtnRegister.classList.remove('active');
+    tabBtnLogin.classList.add('active');
+    regForm.style.display = 'none';
+    loginForm.style.display = 'block';
+  }
+}
+
+function togglePasswordVisibility(inputId, btnId) {
+  const input = document.getElementById(inputId);
+  const btn = document.getElementById(btnId);
+  if (!input || !btn) return;
+  if (input.type === 'password') {
+    input.type = 'text';
+    btn.textContent = '🙈';
+  } else {
+    input.type = 'password';
+    btn.textContent = '👁️';
+  }
+}
+
+function showAuthAlert(message, type = 'error') {
+  const alertEl = document.getElementById('authAlert');
+  if (!alertEl) return;
+  alertEl.textContent = message;
+  alertEl.className = `auth-alert ${type}`;
+  alertEl.style.display = 'block';
+}
+
+function hideAuthAlert() {
+  const alertEl = document.getElementById('authAlert');
+  if (alertEl) {
+    alertEl.textContent = '';
+    alertEl.className = 'auth-alert';
+    alertEl.style.display = 'none';
+  }
+}
+
+function updateFarmerUI(farmer) {
+  const badge = document.getElementById('farmerBadge');
+  const sbLogout = document.getElementById('btnSidebarLogout');
+  if (farmer) {
+    if (badge) badge.style.display = 'inline-flex';
+    if (sbLogout) sbLogout.style.display = 'inline-flex';
+    const nameEl = document.getElementById('farmerNameLabel');
+    const emailEl = document.getElementById('farmerEmailLabel');
+    const avatarEl = document.getElementById('farmerAvatar');
+    if (nameEl) nameEl.textContent = farmer.full_name;
+    if (emailEl) emailEl.textContent = farmer.email;
+    if (avatarEl) {
+      const parts = (farmer.full_name || 'Farmer').trim().split(/\s+/);
+      const initials = (parts[0][0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
+      avatarEl.textContent = initials || '👨‍🌾';
+    }
+  } else {
+    if (badge) badge.style.display = 'none';
+    if (sbLogout) sbLogout.style.display = 'none';
+  }
+}
+
+function handleLogout() {
+  clearAuthToken();
+  state.currentFarmer = null;
+  state.fields = [];
+  state.activeFieldId = null;
+  state.latestSoilTest = null;
+  state.latestImage = null;
+  state.capturedBase64 = null;
+  if (state.cameraStream) {
+    try {
+      state.cameraStream.getTracks().forEach(t => t.stop());
+    } catch (_) {}
+    state.cameraStream = null;
+  }
+  updateFarmerUI(null);
+  showAuthScreen('login', 'You have been signed out successfully.');
+  showToast('Signed out successfully', 'info');
+}
+
+async function handleLogin(e) {
+  e.preventDefault();
+  hideAuthAlert();
+  const emailInput = document.getElementById('loginEmail');
+  const passInput = document.getElementById('loginPassword');
+  const btn = document.getElementById('btnAuthLoginSubmit');
+
+  const email = emailInput.value.trim();
+  const password = passInput.value;
+
+  if (!email || !password) {
+    showAuthAlert('Please enter both email and password.', 'error');
+    return;
+  }
+
+  btn.disabled = true;
+  const originalText = btn.innerHTML;
+  btn.innerHTML = '<span>Signing In... ⏳</span>';
+
+  try {
+    const data = await fetchApi('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+
+    setAuthToken(data.access_token);
+    const farmer = await fetchApi('/api/auth/me');
+    state.currentFarmer = farmer;
+    updateFarmerUI(farmer);
+    showAppScreen();
+    showToast(`Welcome back, ${farmer.full_name}!`, 'success');
+
+    await checkHealth();
+    await loadDatasetStatus();
+    await refreshFields();
+
+    window.removeEventListener('hashchange', handleRoute);
+    window.addEventListener('hashchange', handleRoute);
+    handleRoute();
+  } catch (err) {
+    showAuthAlert(err.message || 'Login failed. Please check your credentials.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+  }
+}
+
+async function handleRegister(e) {
+  e.preventDefault();
+  hideAuthAlert();
+  const nameInput = document.getElementById('regFullName');
+  const emailInput = document.getElementById('regEmail');
+  const passInput = document.getElementById('regPassword');
+  const confirmInput = document.getElementById('regConfirmPassword');
+  const btn = document.getElementById('btnAuthRegSubmit');
+
+  const full_name = nameInput.value.trim();
+  const email = emailInput.value.trim();
+  const password = passInput.value;
+  const confirmPassword = confirmInput.value;
+
+  if (!full_name || full_name.length < 2) {
+    showAuthAlert('Please enter your full name (at least 2 characters).', 'error');
+    return;
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    showAuthAlert('Please enter a valid email address.', 'error');
+    return;
+  }
+
+  if (password.length < 8) {
+    showAuthAlert('Password must be at least 8 characters long.', 'error');
+    return;
+  }
+
+  if (password !== confirmPassword) {
+    showAuthAlert('Passwords do not match. Please verify.', 'error');
+    return;
+  }
+
+  btn.disabled = true;
+  const originalText = btn.innerHTML;
+  btn.innerHTML = '<span>Creating Account... ⏳</span>';
+
+  try {
+    const data = await fetchApi('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ full_name, email, password })
+    });
+
+    setAuthToken(data.access_token);
+    state.currentFarmer = data.farmer;
+    updateFarmerUI(data.farmer);
+    showAppScreen();
+    showToast(`Welcome to SoilSense AI, ${data.farmer.full_name}!`, 'success');
+
+    await checkHealth();
+    await loadDatasetStatus();
+    await refreshFields();
+
+    window.removeEventListener('hashchange', handleRoute);
+    window.addEventListener('hashchange', handleRoute);
+    handleRoute();
+  } catch (err) {
+    showAuthAlert(err.message || 'Registration failed. Please try again.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+  }
+}
+
+function setupAuthEvents() {
+  const tabBtnLogin = document.getElementById('tabBtnLogin');
+  const tabBtnRegister = document.getElementById('tabBtnRegister');
+  if (tabBtnLogin) tabBtnLogin.onclick = () => switchAuthTab('login');
+  if (tabBtnRegister) tabBtnRegister.onclick = () => switchAuthTab('register');
+
+  const btnToggleLoginPass = document.getElementById('btnToggleLoginPass');
+  if (btnToggleLoginPass) {
+    btnToggleLoginPass.onclick = () => togglePasswordVisibility('loginPassword', 'btnToggleLoginPass');
+  }
+
+  const btnToggleRegPass = document.getElementById('btnToggleRegPass');
+  if (btnToggleRegPass) {
+    btnToggleRegPass.onclick = () => togglePasswordVisibility('regPassword', 'btnToggleRegPass');
+  }
+
+  const btnToggleRegConfirm = document.getElementById('btnToggleRegConfirm');
+  if (btnToggleRegConfirm) {
+    btnToggleRegConfirm.onclick = () => togglePasswordVisibility('regConfirmPassword', 'btnToggleRegConfirm');
+  }
+
+  const btnLogout = document.getElementById('btnLogout');
+  if (btnLogout) btnLogout.onclick = handleLogout;
+
+  const btnSidebarLogout = document.getElementById('btnSidebarLogout');
+  if (btnSidebarLogout) btnSidebarLogout.onclick = handleLogout;
+
+  const loginForm = document.getElementById('authLoginForm');
+  if (loginForm) loginForm.onsubmit = handleLogin;
+
+  const regForm = document.getElementById('authRegisterForm');
+  if (regForm) regForm.onsubmit = handleRegister;
+}
+
+// ============================================================================
 // INITIALIZATION & ROUTING
 // ============================================================================
 async function initApp() {
   setupNavigation();
   setupLanguageSwitcher();
   setupNewFarmDialog();
+  setupAuthEvents();
 
+  const token = getAuthToken();
+  if (token) {
+    try {
+      const farmer = await fetchApi('/api/auth/me');
+      state.currentFarmer = farmer;
+      updateFarmerUI(farmer);
+      showAppScreen();
+
+      await checkHealth();
+      await loadDatasetStatus();
+      await refreshFields();
+
+      window.addEventListener('hashchange', handleRoute);
+      handleRoute();
+      return;
+    } catch (e) {
+      console.warn('Session check failed, reverting to login screen:', e);
+      clearAuthToken();
+      state.currentFarmer = null;
+    }
+  }
+
+  showAuthScreen('login');
   await checkHealth();
-  await loadDatasetStatus();
-  await refreshFields();
-
-  window.addEventListener('hashchange', handleRoute);
-  handleRoute();
 }
 
 async function checkHealth() {
@@ -1374,7 +2052,15 @@ function setupLanguageSwitcher() {
 
 function setupNewFarmDialog() {
   const dlg = document.getElementById('newFarmDialog');
-  document.getElementById('btnOpenNewFarm').onclick = () => dlg.showModal();
+  document.getElementById('btnOpenNewFarm').onclick = () => {
+    if (state.currentFarmer) {
+      const farmerNameInput = document.querySelector('#newFarmForm input[name="farmer_name"]');
+      if (farmerNameInput && !farmerNameInput.value) {
+        farmerNameInput.value = state.currentFarmer.full_name;
+      }
+    }
+    dlg.showModal();
+  };
   document.getElementById('btnCloseFarmModal').onclick = () => dlg.close();
 
   document.getElementById('newFarmForm').onsubmit = async (e) => {
@@ -1943,8 +2629,8 @@ function showPreprocessResult(imageId, warnings = []) {
   const card = document.getElementById('preprocessResultCard');
   if (!card) return;
   card.style.display = 'block';
-  document.getElementById('cmpOriginalImg').src = `/api/images/${imageId}/file?t=${Date.now()}`;
-  document.getElementById('cmpProcessedImg').src = `/api/images/${imageId}/preprocessed?t=${Date.now()}`;
+  document.getElementById('cmpOriginalImg').src = authImgUrl(`/api/images/${imageId}/file?t=${Date.now()}`);
+  document.getElementById('cmpProcessedImg').src = authImgUrl(`/api/images/${imageId}/preprocessed?t=${Date.now()}`);
 
   const warnDiv = document.getElementById('preprocessWarnings');
   if (warnings && warnings.length > 0) {
@@ -2251,7 +2937,7 @@ async function renderHistory(container) {
         <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px;">
           ${images.map(img => `
             <div style="border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: #FFF;">
-              <img src="/api/images/${img.id}/file" style="width: 100%; height: 110px; object-fit: cover;" alt="Soil Capture">
+              <img src="${authImgUrl(`/api/images/${img.id}/file`)}" style="width: 100%; height: 110px; object-fit: cover;" alt="Soil Capture">
               <div style="padding: 8px; font-size: 11px;">
                 <div style="font-weight: 700; color: var(--primary);">${img.original_format} • ${img.width}×${img.height}</div>
                 <div style="color: var(--text-muted);">${new Date(img.uploaded_at).toLocaleDateString()}</div>

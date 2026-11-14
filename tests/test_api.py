@@ -12,12 +12,34 @@ import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 from PIL import Image  # noqa: E402
 
+from app.database import Base, engine  # noqa: E402
 from app.main import app  # noqa: E402
+
+
+@pytest.fixture(scope="module", autouse=True)
+def setup_db():
+    Base.metadata.create_all(engine)
+    yield
 
 
 @pytest.fixture(scope="module")
 def client():
     with TestClient(app) as c:
+        # Register default test farmer for API regression testing
+        reg = c.post("/api/auth/register", json={
+            "full_name": "Test Farmer",
+            "email": "test.farmer.api@example.com",
+            "password": "testpassword123",
+        })
+        if reg.status_code == 201:
+            token = reg.json()["access_token"]
+        else:
+            login = c.post("/api/auth/login", json={
+                "email": "test.farmer.api@example.com",
+                "password": "testpassword123",
+            })
+            token = login.json()["access_token"]
+        c.headers.update({"Authorization": f"Bearer {token}"})
         yield c
 
 

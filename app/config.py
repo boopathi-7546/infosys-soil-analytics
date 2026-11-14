@@ -12,6 +12,13 @@ DATABASE_URL = os.getenv(
 UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "uploads"))
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "10"))
 
+# Authentication & Security
+JWT_SECRET_KEY = os.getenv(
+    "JWT_SECRET_KEY", "soilsense-ai-insecure-development-secret-key-change-in-production-12345"
+)
+JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
+
 ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png"}
 ALLOWED_FORMATS = {"JPEG", "PNG"}   # checked against the real file content, not the filename
 MIN_SIDE_PX = 100                   # reject images smaller than this
