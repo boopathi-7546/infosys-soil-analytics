@@ -16,7 +16,7 @@ Health score formula (0–100):
        + potassium_score * 15 + om_score * 15 + moisture_score * 10)
       , 2)
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func as sa_func, select
 from sqlalchemy.orm import Session
 
@@ -32,6 +32,39 @@ router = APIRouter(tags=["soil-tests"])
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
+
+def _get_farmer_test_number_map(farmer_id: int, db: Session) -> dict[int, int]:
+    """Return a mapping of {soil_test_id: sequential_test_number} for all tests belonging to this farmer.
+    Numbering starts at 1 in chronological order (oldest is #1, newest is #N).
+    """
+    stmt = (
+        select(SoilTest.id)
+        .join(Field, SoilTest.field_id == Field.id)
+        .where(Field.farmer_id == farmer_id)
+        .order_by(SoilTest.id.asc())
+    )
+    test_ids = db.scalars(stmt).all()
+    return {test_id: idx + 1 for idx, test_id in enumerate(test_ids)}
+
+
+def _enrich(obj: SoilTest, test_number: int | None = None, db: Session | None = None) -> SoilTestOut:
+    out = SoilTestOut.model_validate(obj)
+    out.health_score = _compute_health_score(obj)
+    if test_number is not None:
+        out.test_number = test_number
+        out.display_id = test_number
+    elif db is not None and obj.field and obj.field.farmer_id is not None:
+        seq = db.scalar(
+            select(sa_func.count(SoilTest.id))
+            .join(Field, SoilTest.field_id == Field.id)
+            .where(Field.farmer_id == obj.field.farmer_id, SoilTest.id <= obj.id)
+        ) or 1
+        out.test_number = seq
+        out.display_id = seq
+    else:
+        out.test_number = obj.id
+        out.display_id = obj.id
+    return out
 
 def _compute_health_score(t: SoilTest) -> float:
     """Return a 0–100 soil health score (see module docstring for formula)."""
@@ -137,12 +170,6 @@ def _make_advisory(test: SoilTest, score: float) -> AdvisoryOut:
     )
 
 
-def _enrich(obj: SoilTest) -> SoilTestOut:
-    out = SoilTestOut.model_validate(obj)
-    out.health_score = _compute_health_score(obj)
-    return out
-
-
 def _get_farmer_soil_test_or_404(test_id: int, current_farmer: Farmer, db: Session) -> SoilTest:
     """Retrieve soil test verifying that the associated field belongs to the current farmer."""
     obj = db.get(SoilTest, test_id)
@@ -171,39 +198,50 @@ def create_soil_test(
     db.add(obj)
     db.commit()
     db.refresh(obj)
-    return _enrich(obj)
+    return _enrich(obj, db=db)
 
 
 @router.get("/fields/{field_id}/soil-tests", response_model=list[SoilTestOut])
-def list_soil_tests(
+def list_soil_tests_for_field(
     field_id: int,
     current_farmer: Farmer = Depends(get_current_farmer),
     db: Session = Depends(get_db),
 ):
     """History for one field (strictly owned by authenticated farmer), newest first."""
     field = get_farmer_field_or_404(field_id, current_farmer, db)
+    num_map = _get_farmer_test_number_map(current_farmer.id, db)
     rows = db.scalars(
         select(SoilTest)
         .where(SoilTest.field_id == field.id)
         .order_by(SoilTest.tested_at.desc(), SoilTest.id.desc())
     ).all()
-    return [_enrich(r) for r in rows]
+    return [_enrich(r, test_number=num_map.get(r.id), db=db) for r in rows]
 
 
 @router.get("/soil-tests", response_model=list[SoilTestOut])
-def list_soil_tests_by_field(
-    field_id: int,
+def list_soil_tests(
+    field_id: int | None = Query(default=None, description="Optional field ID filter. If omitted, returns all soil tests for the authenticated farmer across all fields."),
+    limit: int | None = Query(default=None, ge=1, description="Optional maximum number of records to return"),
     current_farmer: Farmer = Depends(get_current_farmer),
     db: Session = Depends(get_db),
 ):
-    """GET /api/soil-tests/?field_id=X — flat query with farmer ownership check."""
-    field = get_farmer_field_or_404(field_id, current_farmer, db)
-    rows = db.scalars(
+    """GET /api/soil-tests — flat query returning all soil tests for the authenticated farmer, newest first."""
+    num_map = _get_farmer_test_number_map(current_farmer.id, db)
+    stmt = (
         select(SoilTest)
-        .where(SoilTest.field_id == field.id)
-        .order_by(SoilTest.tested_at.desc(), SoilTest.id.desc())
-    ).all()
-    return [_enrich(r) for r in rows]
+        .join(Field, SoilTest.field_id == Field.id)
+        .where(Field.farmer_id == current_farmer.id)
+    )
+    if field_id is not None:
+        get_farmer_field_or_404(field_id, current_farmer, db)
+        stmt = stmt.where(SoilTest.field_id == field_id)
+
+    stmt = stmt.order_by(SoilTest.tested_at.desc(), SoilTest.id.desc())
+    if limit is not None:
+        stmt = stmt.limit(limit)
+
+    rows = db.scalars(stmt).all()
+    return [_enrich(r, test_number=num_map.get(r.id), db=db) for r in rows]
 
 
 @router.get("/soil-tests/{test_id}", response_model=SoilTestOut)
@@ -214,7 +252,8 @@ def get_soil_test(
 ):
     """Retrieve single soil test (strictly owned by authenticated farmer)."""
     obj = _get_farmer_soil_test_or_404(test_id, current_farmer, db)
-    return _enrich(obj)
+    num_map = _get_farmer_test_number_map(current_farmer.id, db)
+    return _enrich(obj, test_number=num_map.get(obj.id), db=db)
 
 
 @router.get("/soil-tests/{test_id}/advisory", response_model=AdvisoryOut)

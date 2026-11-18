@@ -242,3 +242,4 @@ def authenticate_or_link_google_user(user_info: dict[str, Any], db: Session) -> 
     db.commit()
     db.refresh(new_farmer)
     return new_farmer
+

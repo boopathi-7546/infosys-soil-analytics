@@ -1,6 +1,6 @@
 import base64
 import re
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -154,8 +154,27 @@ def list_images(
     """List images for a specific field owned by the authenticated farmer."""
     field = get_farmer_field_or_404(field_id, current_farmer, db)
     return db.scalars(
-        select(SoilImage).where(SoilImage.field_id == field.id).order_by(SoilImage.id.desc())
+        select(SoilImage).where(SoilImage.field_id == field.id).order_by(SoilImage.uploaded_at.desc(), SoilImage.id.desc())
     ).all()
+
+
+@router.get("/images", response_model=list[ImageOut])
+def list_all_images(
+    field_id: int | None = Query(default=None, description="Optional field ID filter. If omitted, returns all images for the authenticated farmer across all fields."),
+    current_farmer: Farmer = Depends(get_current_farmer),
+    db: Session = Depends(get_db),
+):
+    """List soil photographs for the authenticated farmer (across all fields or filtered by field)."""
+    stmt = (
+        select(SoilImage)
+        .join(Field, SoilImage.field_id == Field.id)
+        .where(Field.farmer_id == current_farmer.id)
+    )
+    if field_id is not None:
+        get_farmer_field_or_404(field_id, current_farmer, db)
+        stmt = stmt.where(SoilImage.field_id == field_id)
+
+    return db.scalars(stmt.order_by(SoilImage.uploaded_at.desc(), SoilImage.id.desc())).all()
 
 
 @router.get("/images/{image_id}", response_model=ImageOut)

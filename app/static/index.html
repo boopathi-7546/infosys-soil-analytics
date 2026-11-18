@@ -2833,7 +2833,7 @@ function showSoilResults(test, advisory) {
       <div class="card-header">
         <div>
           <h3 class="card-title">📊 Soil Health Evaluation & Agronomic Diagnosis</h3>
-          <p class="card-subtitle">Test Record #${test.id} • Recorded ${new Date(test.tested_at).toLocaleString()}</p>
+          <p class="card-subtitle">Test Record #${test.test_number || test.display_id || test.id} • Recorded ${new Date(test.tested_at).toLocaleString()}</p>
         </div>
         <span class="status-badge green">Validated Lab Data</span>
       </div>
@@ -3030,24 +3030,47 @@ window.deleteFarm = async (fieldId) => {
 // ============================================================================
 // SECTION 4: SOIL HISTORY
 // ============================================================================
+window.setHistoryFilter = (mode) => {
+  state.historyFilter = mode;
+  renderHistory(document.getElementById('mainContent'));
+};
+
 async function renderHistory(container) {
   let tests = [];
   let images = [];
-  if (state.activeFieldId) {
-    try {
+  const isAllFarms = state.historyFilter === 'all';
+  const activeFarm = (state.fields || []).find(f => f.id === state.activeFieldId);
+
+  try {
+    if (isAllFarms || !state.activeFieldId) {
+      tests = await fetchApi('/api/soil-tests');
+      images = await fetchApi('/api/images');
+    } else {
       tests = await fetchApi(`/api/fields/${state.activeFieldId}/soil-tests`);
       images = await fetchApi(`/api/fields/${state.activeFieldId}/images`);
-    } catch (e) {
-      console.warn(e);
     }
+  } catch (e) {
+    console.warn('Error loading soil history:', e);
   }
+
+  const farmMap = new Map((state.fields || []).map(f => [f.id, f.name]));
 
   container.innerHTML = `
     <div class="card">
-      <div class="card-header">
+      <div class="card-header" style="flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;">
         <div>
           <h3 class="card-title">📜 Historical Laboratory Soil Tests</h3>
-          <p class="card-subtitle">Timeline of nutrient assessments and degradation tracking</p>
+          <p class="card-subtitle">
+            ${isAllFarms ? 'All recorded soil tests across your farms' : `Recorded soil tests for ${activeFarm ? activeFarm.name : 'selected plot'}`} • <b>${tests.length}</b> total record${tests.length === 1 ? '' : 's'} (newest first)
+          </p>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <button class="btn btn-sm ${!isAllFarms ? 'btn-secondary' : 'btn-outline'}" onclick="setHistoryFilter('active')" title="Show tests for current farm only">
+            ${activeFarm ? activeFarm.name : 'Current Farm'}
+          </button>
+          <button class="btn btn-sm ${isAllFarms ? 'btn-secondary' : 'btn-outline'}" onclick="setHistoryFilter('all')" title="Show all tests across all your farms">
+            All Farms (${state.fields.length})
+          </button>
         </div>
       </div>
 
@@ -3058,35 +3081,40 @@ async function renderHistory(container) {
           <p style="font-size: 14px;">Submit a soil test from the "Analyze Soil" tab to start logging historical records.</p>
         </div>
       ` : `
-        <div class="table-responsive">
+        <div class="table-responsive" style="max-height: 520px; overflow-y: auto;">
           <table>
-            <thead>
+            <thead style="position: sticky; top: 0; background: #F8F6F0; z-index: 5;">
               <tr>
-                <th>Test ID</th>
-                <th>Date</th>
+                <th>Test #</th>
+                ${isAllFarms ? '<th>Farm Plot</th>' : ''}
+                <th>Submission Date</th>
                 <th>Nitrogen (N)</th>
                 <th>Phosphorus (P)</th>
                 <th>Potassium (K)</th>
-                <th>pH</th>
+                <th>Soil pH</th>
                 <th>Organic Matter</th>
                 <th>Moisture</th>
                 <th>Health Score</th>
               </tr>
             </thead>
             <tbody>
-              ${tests.map(t => `
+              ${tests.map(t => {
+                const plotName = farmMap.get(t.field_id) || `Plot #${t.field_id}`;
+                const displayNum = t.test_number || t.display_id || t.id;
+                return `
                 <tr>
-                  <td>#${t.id}</td>
+                  <td><span class="status-badge" style="background: #E8F5E9; color: var(--primary); font-weight: 700;">Test #${displayNum}</span></td>
+                  ${isAllFarms ? `<td><b>${plotName}</b></td>` : ''}
                   <td>${new Date(t.tested_at).toLocaleString()}</td>
                   <td><b>${t.nitrogen}</b> kg/ha</td>
                   <td><b>${t.phosphorus}</b> kg/ha</td>
                   <td><b>${t.potassium}</b> kg/ha</td>
-                  <td><span class="status-badge ${t.ph >= 6.0 && t.ph <= 7.5 ? 'green' : 'yellow'}">${t.ph.toFixed(1)}</span></td>
+                  <td><span class="status-badge ${t.ph >= 6.0 && t.ph <= 7.5 ? 'green' : (t.ph < 5.5 || t.ph > 8.0 ? 'red' : 'yellow')}">${t.ph.toFixed(1)}</span></td>
                   <td>${t.organic_matter.toFixed(1)} %</td>
                   <td>${t.moisture.toFixed(1)} %</td>
                   <td><span class="status-badge green">${t.health_score || '–'} / 100</span></td>
                 </tr>
-              `).join('')}
+              `}).join('')}
             </tbody>
           </table>
         </div>
@@ -3095,21 +3123,26 @@ async function renderHistory(container) {
 
     <!-- Gallery of Previously Uploaded Images -->
     <div class="card">
-      <div class="card-header">
+      <div class="card-header" style="flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;">
         <div>
           <h3 class="card-title">📷 Field Soil Photograph Log</h3>
-          <p class="card-subtitle">Inspected captures and blur detection scores</p>
+          <p class="card-subtitle">
+            ${isAllFarms ? 'All inspected captures across your farms' : `Photographs for ${activeFarm ? activeFarm.name : 'selected plot'}`} • <b>${images.length}</b> photograph${images.length === 1 ? '' : 's'}
+          </p>
         </div>
       </div>
       ${images.length === 0 ? `
-        <p style="color: var(--text-muted); font-size: 14px;">No photographs uploaded for this farm yet.</p>
+        <p style="color: var(--text-muted); font-size: 14px; padding: 12px 0;">No photographs uploaded yet.</p>
       ` : `
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px;">
-          ${images.map(img => `
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; max-height: 480px; overflow-y: auto;">
+          ${images.map(img => {
+            const plotName = farmMap.get(img.field_id);
+            return `
             <div style="border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: #FFF;">
               <img src="${authImgUrl(`/api/images/${img.id}/file`)}" style="width: 100%; height: 110px; object-fit: cover;" alt="Soil Capture">
               <div style="padding: 8px; font-size: 11px;">
                 <div style="font-weight: 700; color: var(--primary);">${img.original_format} • ${img.width}×${img.height}</div>
+                ${plotName ? `<div style="color: var(--primary-light); font-weight: 600; font-size: 10px;">📍 ${plotName}</div>` : ''}
                 <div style="color: var(--text-muted);">${new Date(img.uploaded_at).toLocaleDateString()}</div>
                 <div style="margin-top: 4px;">
                   <span class="status-badge ${img.blur_score >= 60 ? 'green' : 'yellow'}">
@@ -3118,11 +3151,12 @@ async function renderHistory(container) {
                 </div>
               </div>
             </div>
-          `).join('')}
+          `}).join('')}
         </div>
       `}
     </div>
   `;
+}
 }
 
 // ============================================================================
@@ -3163,7 +3197,7 @@ async function renderAdvisory(container) {
       <div class="card-header">
         <div>
           <h3 class="card-title">💡 Intelligent Agronomic Advisory Engine</h3>
-          <p class="card-subtitle">Custom recommendations based on Test #${latestTest.id} (${new Date(latestTest.tested_at).toLocaleDateString()})</p>
+          <p class="card-subtitle">Custom recommendations based on Test #${latestTest.test_number || latestTest.display_id || latestTest.id} (${new Date(latestTest.tested_at).toLocaleDateString()})</p>
         </div>
         <span class="status-badge green">Rule-Based Agronomy</span>
       </div>
@@ -3322,22 +3356,35 @@ async function renderReports(container) {
 }
 
 window.exportTestsCsv = async () => {
-  if (!state.activeFieldId) return;
   try {
-    const tests = await fetchApi(`/api/fields/${state.activeFieldId}/soil-tests`);
-    if (tests.length === 0) {
+    const url = (!state.historyFilter || state.historyFilter === 'all')
+      ? '/api/soil-tests'
+      : `/api/fields/${state.activeFieldId}/soil-tests`;
+    const tests = await fetchApi(url);
+    if (!tests || tests.length === 0) {
       showToast('No tests to export', 'error');
       return;
     }
-    const headers = ['id', 'tested_at', 'nitrogen', 'phosphorus', 'potassium', 'ph', 'organic_matter', 'moisture', 'health_score'];
-    const rows = tests.map(t => [t.id, t.tested_at, t.nitrogen, t.phosphorus, t.potassium, t.ph, t.organic_matter, t.moisture, t.health_score || '']);
+    const headers = ['test_number', 'tested_at', 'nitrogen', 'phosphorus', 'potassium', 'ph', 'organic_matter', 'moisture', 'health_score'];
+    const rows = tests.map(t => [
+      t.test_number || t.display_id || t.id,
+      t.tested_at,
+      t.nitrogen,
+      t.phosphorus,
+      t.potassium,
+      t.ph,
+      t.organic_matter,
+      t.moisture,
+      t.health_score || ''
+    ]);
     const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
+    const urlBlob = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = `soil_tests_field_${state.activeFieldId}.csv`;
+    a.href = urlBlob;
+    const filterSuffix = (!state.historyFilter || state.historyFilter === 'all') ? 'all_records' : `field_${state.activeFieldId}`;
+    a.download = `soil_tests_${filterSuffix}.csv`;
     a.click();
     showToast('CSV downloaded successfully!', 'success');
   } catch (err) {

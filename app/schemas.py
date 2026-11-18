@@ -94,6 +94,8 @@ class SoilTestOut(SoilTestIn):
     field_id: int
     tested_at: datetime
     health_score: float | None = None  # computed field, not stored in DB
+    test_number: int | None = None     # account-specific sequential test number (#1, #2, ...)
+    display_id: int | None = None      # display number alias for user interface
 
 
 class AdvisoryOut(BaseModel):
