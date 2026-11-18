@@ -25,6 +25,9 @@ class FarmerOut(BaseModel):
     email: str
     is_active: bool
     created_at: datetime
+    google_id: str | None = None
+    avatar_url: str | None = None
+    auth_provider: str = "local"
 
 
 class TokenOut(BaseModel):
@@ -32,6 +35,15 @@ class TokenOut(BaseModel):
     token_type: str = "bearer"
     expires_in: int
     farmer: FarmerOut
+
+
+class GoogleAuthUrlOut(BaseModel):
+    url: str
+
+
+class GoogleCallbackIn(BaseModel):
+    code: str
+    state: str
 
 
 # ---------------------------------------------------------------------------

@@ -19,6 +19,13 @@ JWT_SECRET_KEY = os.getenv(
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
 
+# Google OAuth 2.0 / OpenID Connect
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "").strip()
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "").strip()
+GOOGLE_REDIRECT_URI = os.getenv(
+    "GOOGLE_REDIRECT_URI", "http://localhost:8000/api/auth/google/callback"
+).strip()
+
 ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png"}
 ALLOWED_FORMATS = {"JPEG", "PNG"}   # checked against the real file content, not the filename
 MIN_SIDE_PX = 100                   # reject images smaller than this

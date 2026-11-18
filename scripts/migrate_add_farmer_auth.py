@@ -61,6 +61,24 @@ def run_migration(engine=None):
         else:
             print("[MIGRATION] 'farmer_id' column already exists on 'fields'.")
 
+    # Step 3: Check and add Google OAuth columns to farmers table if missing
+    if "farmers" in existing_tables:
+        farmer_cols = [c["name"] for c in inspector.get_columns("farmers")]
+        with engine.begin() as conn:
+            if "google_id" not in farmer_cols:
+                print("[MIGRATION] Adding 'google_id' column to 'farmers' table...")
+                conn.execute(text("ALTER TABLE farmers ADD COLUMN google_id VARCHAR(255)"))
+                conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_farmers_google_id ON farmers (google_id)"))
+                print("[MIGRATION] Added 'google_id' column and index.")
+            if "avatar_url" not in farmer_cols:
+                print("[MIGRATION] Adding 'avatar_url' column to 'farmers' table...")
+                conn.execute(text("ALTER TABLE farmers ADD COLUMN avatar_url VARCHAR(500)"))
+                print("[MIGRATION] Added 'avatar_url' column.")
+            if "auth_provider" not in farmer_cols:
+                print("[MIGRATION] Adding 'auth_provider' column to 'farmers' table...")
+                conn.execute(text("ALTER TABLE farmers ADD COLUMN auth_provider VARCHAR(50) DEFAULT 'local'"))
+                print("[MIGRATION] Added 'auth_provider' column.")
+
     print("[MIGRATION] Migration completed successfully with zero data loss.")
 
 

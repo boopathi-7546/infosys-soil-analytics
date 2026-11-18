@@ -21,6 +21,9 @@ class Farmer(Base):
     hashed_password: Mapped[str] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    google_id: Mapped[str | None] = mapped_column(String(255), nullable=True, unique=True, index=True)
+    avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    auth_provider: Mapped[str] = mapped_column(String(50), default="local")
 
     fields: Mapped[list["Field"]] = relationship(back_populates="farmer", cascade="all, delete-orphan")
 

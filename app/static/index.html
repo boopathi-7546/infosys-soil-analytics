@@ -1161,6 +1161,78 @@ dialog::backdrop {
   background: #FEE2E2;
 }
 
+/* Google OAuth Sign-In Button & Divider */
+.oauth-section {
+  margin-bottom: 6px;
+}
+
+.btn-google {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: #FFFFFF;
+  color: #3C4043;
+  border: 1px solid #DADCE0;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  min-height: 44px;
+}
+
+.btn-google:hover {
+  background: #F8F9FA;
+  border-color: #C6C8CC;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
+}
+
+.btn-google:active {
+  background: #EEEEEE;
+  transform: translateY(0);
+}
+
+.btn-google:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.google-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 18px 0;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--border);
+}
+
+.auth-divider span {
+  padding: 0 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-muted);
+}
+
 </style>
 </head>
 <body>
@@ -1183,6 +1255,22 @@ dialog::backdrop {
 
     <!-- Sign In Form -->
     <form id="authLoginForm" autocomplete="on">
+      <div class="oauth-section">
+        <button type="button" class="btn-google" id="btnGoogleLogin">
+          <svg class="google-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+          </svg>
+          <span>Continue with Google</span>
+        </button>
+      </div>
+
+      <div class="auth-divider">
+        <span>OR</span>
+      </div>
+
       <div class="form-group" style="margin-bottom: 14px;">
         <label class="form-label" for="loginEmail">Email Address *</label>
         <input type="email" id="loginEmail" name="email" class="form-input" required placeholder="farmer@example.com" autocomplete="email">
@@ -1203,6 +1291,22 @@ dialog::backdrop {
 
     <!-- Registration Form -->
     <form id="authRegisterForm" style="display: none;" autocomplete="on">
+      <div class="oauth-section">
+        <button type="button" class="btn-google" id="btnGoogleRegister">
+          <svg class="google-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+          </svg>
+          <span>Continue with Google</span>
+        </button>
+      </div>
+
+      <div class="auth-divider">
+        <span>OR</span>
+      </div>
+
       <div class="form-group" style="margin-bottom: 14px;">
         <label class="form-label" for="regFullName">Full Name *</label>
         <input type="text" id="regFullName" name="full_name" class="form-input" required placeholder="e.g. Ramesh Kumar" maxlength="120" autocomplete="name">
@@ -1762,9 +1866,13 @@ function updateFarmerUI(farmer) {
     if (nameEl) nameEl.textContent = farmer.full_name;
     if (emailEl) emailEl.textContent = farmer.email;
     if (avatarEl) {
-      const parts = (farmer.full_name || 'Farmer').trim().split(/\s+/);
-      const initials = (parts[0][0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
-      avatarEl.textContent = initials || '👨‍🌾';
+      if (farmer.avatar_url) {
+        avatarEl.innerHTML = `<img src="${farmer.avatar_url}" alt="${farmer.full_name}" referrerpolicy="no-referrer" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+      } else {
+        const parts = (farmer.full_name || 'Farmer').trim().split(/\s+/);
+        const initials = (parts[0][0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
+        avatarEl.textContent = initials || '👨‍🌾';
+      }
     }
   } else {
     if (badge) badge.style.display = 'none';
@@ -1906,11 +2014,59 @@ async function handleRegister(e) {
   }
 }
 
+async function startGoogleAuth() {
+  hideAuthAlert();
+  const btnLogin = document.getElementById('btnGoogleLogin');
+  const btnReg = document.getElementById('btnGoogleRegister');
+  if (btnLogin) {
+    btnLogin.disabled = true;
+    const txt = btnLogin.querySelector('span');
+    if (txt) txt.textContent = 'Connecting to Google...';
+  }
+  if (btnReg) {
+    btnReg.disabled = true;
+    const txt = btnReg.querySelector('span');
+    if (txt) txt.textContent = 'Connecting to Google...';
+  }
+
+  try {
+    const res = await fetch('/api/auth/google/url');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Google Sign-In is not currently available.');
+    }
+    const data = await res.json();
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      throw new Error('Failed to obtain Google authentication URL.');
+    }
+  } catch (err) {
+    showAuthAlert(err.message, 'error');
+    if (btnLogin) {
+      btnLogin.disabled = false;
+      const txt = btnLogin.querySelector('span');
+      if (txt) txt.textContent = 'Continue with Google';
+    }
+    if (btnReg) {
+      btnReg.disabled = false;
+      const txt = btnReg.querySelector('span');
+      if (txt) txt.textContent = 'Continue with Google';
+    }
+  }
+}
+
 function setupAuthEvents() {
   const tabBtnLogin = document.getElementById('tabBtnLogin');
   const tabBtnRegister = document.getElementById('tabBtnRegister');
   if (tabBtnLogin) tabBtnLogin.onclick = () => switchAuthTab('login');
   if (tabBtnRegister) tabBtnRegister.onclick = () => switchAuthTab('register');
+
+  const btnGoogleLogin = document.getElementById('btnGoogleLogin');
+  if (btnGoogleLogin) btnGoogleLogin.onclick = startGoogleAuth;
+
+  const btnGoogleRegister = document.getElementById('btnGoogleRegister');
+  if (btnGoogleRegister) btnGoogleRegister.onclick = startGoogleAuth;
 
   const btnToggleLoginPass = document.getElementById('btnToggleLoginPass');
   if (btnToggleLoginPass) {
@@ -1948,6 +2104,20 @@ async function initApp() {
   setupLanguageSwitcher();
   setupNewFarmDialog();
   setupAuthEvents();
+
+  // Check for Google OAuth callback parameters in URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const oauthToken = urlParams.get('token') || urlParams.get('access_token');
+  const oauthError = urlParams.get('auth_error') || urlParams.get('error');
+
+  if (oauthToken) {
+    setAuthToken(oauthToken);
+    window.history.replaceState({}, document.title, window.location.pathname);
+    showToast('Google Sign-In successful!', 'success');
+  } else if (oauthError) {
+    window.history.replaceState({}, document.title, window.location.pathname);
+    showAuthScreen('login', `Google Sign-In failed: ${decodeURIComponent(oauthError)}`);
+  }
 
   const token = getAuthToken();
   if (token) {
