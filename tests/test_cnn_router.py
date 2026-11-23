@@ -52,3 +52,4 @@ def test_cnn_confusion_matrix_endpoint(client):
     assert res.status_code == 200
     assert "image/png" in res.headers.get("content-type", "")
     assert len(res.content) > 1000
+

@@ -67,7 +67,14 @@ app.include_router(cnn.router, prefix="/api")
 
 @app.get("/", include_in_schema=False)
 def dashboard():
-    return FileResponse(STATIC_DIR / "index.html")
+    return FileResponse(
+        STATIC_DIR / "index.html",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
 
 
 @app.get("/health", tags=["meta"])

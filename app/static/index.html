@@ -104,12 +104,27 @@ body {
 }
 
 .nav-menu {
-  padding: 18px 12px;
+  padding: 16px 12px;
   display: flex;
   flex-direction: column;
   gap: 4px;
   flex-grow: 1;
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+
+.nav-menu::-webkit-scrollbar {
+  width: 5px;
+}
+
+.nav-menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.nav-menu::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
 }
 
 .nav-link {
@@ -1361,6 +1376,10 @@ dialog::backdrop {
         <span class="nav-icon">🔬</span>
         <span data-i18n="nav_analyze">Analyze Soil</span>
       </a>
+      <a href="#model-analytics" class="nav-link" data-nav="model-analytics">
+        <span class="nav-icon">🧠</span>
+        <span data-i18n="nav_model_analytics">AI Model Analytics</span>
+      </a>
       <a href="#farms" class="nav-link" data-nav="farms">
         <span class="nav-icon">🌾</span>
         <span data-i18n="nav_farms">My Farms</span>
@@ -1376,10 +1395,6 @@ dialog::backdrop {
       <a href="#reports" class="nav-link" data-nav="reports">
         <span class="nav-icon">📊</span>
         <span data-i18n="nav_reports">Reports</span>
-      </a>
-      <a href="#model-analytics" class="nav-link" data-nav="model-analytics">
-        <span class="nav-icon">🧠</span>
-        <span data-i18n="nav_model_analytics">AI Model Analytics</span>
       </a>
       <a href="#help" class="nav-link" data-nav="help">
         <span class="nav-icon">❓</span>
@@ -1449,6 +1464,10 @@ dialog::backdrop {
       <span class="mobile-nav-icon">🔬</span>
       <span data-i18n="nav_analyze">Analyze</span>
     </a>
+    <a href="#model-analytics" class="mobile-nav-link" data-nav="model-analytics">
+      <span class="mobile-nav-icon">🧠</span>
+      <span data-i18n="nav_model_analytics">AI Model</span>
+    </a>
     <a href="#farms" class="mobile-nav-link" data-nav="farms">
       <span class="mobile-nav-icon">🌾</span>
       <span data-i18n="nav_farms">Farms</span>
@@ -1456,10 +1475,6 @@ dialog::backdrop {
     <a href="#advisory" class="mobile-nav-link" data-nav="advisory">
       <span class="mobile-nav-icon">💡</span>
       <span data-i18n="nav_advisory">Advisory</span>
-    </a>
-    <a href="#model-analytics" class="mobile-nav-link" data-nav="model-analytics">
-      <span class="mobile-nav-icon">🧠</span>
-      <span data-i18n="nav_model_analytics">AI Model</span>
     </a>
     <a href="#reports" class="mobile-nav-link" data-nav="reports">
       <span class="mobile-nav-icon">📊</span>
@@ -2365,9 +2380,14 @@ async function renderHome(container) {
             Accurate laboratory soil nutrient measurement combined with OpenCV image preprocessing and agronomic crop advisory for optimal farm yields.
           </p>
         </div>
-        <button class="btn btn-secondary" onclick="window.location.hash='analyze'">
-          🔬 ${t('quick_analyze')}
-        </button>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button class="btn btn-secondary" onclick="window.location.hash='analyze'">
+            🔬 ${t('quick_analyze')}
+          </button>
+          <button class="btn btn-outline" style="color: #FFF; border-color: rgba(255,255,255,0.4);" onclick="window.location.hash='model-analytics'">
+            🧠 AI Model Analytics
+          </button>
+        </div>
       </div>
     </div>
 
