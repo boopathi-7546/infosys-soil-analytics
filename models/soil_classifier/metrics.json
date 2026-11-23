@@ -1,0 +1,119 @@
+{
+  "test_loss": 0.4039497783868709,
+  "accuracy": 0.8980582524271845,
+  "macro_avg": {
+    "precision": 0.8837937611215535,
+    "recall": 0.9049868341535007,
+    "f1_score": 0.8899187592374999
+  },
+  "weighted_avg": {
+    "precision": 0.9085480773838163,
+    "recall": 0.8980582524271845,
+    "f1_score": 0.8988971921844093
+  },
+  "classification_report": {
+    "alluvial_soil": {
+      "precision": 0.9302325581395349,
+      "recall": 0.7692307692307693,
+      "f1-score": 0.8421052631578947,
+      "support": 52.0
+    },
+    "black_soil": {
+      "precision": 0.9811320754716981,
+      "recall": 0.9629629629629629,
+      "f1-score": 0.9719626168224299,
+      "support": 54.0
+    },
+    "clay_soil": {
+      "precision": 0.7727272727272727,
+      "recall": 0.9444444444444444,
+      "f1-score": 0.85,
+      "support": 18.0
+    },
+    "laterite_soil": {
+      "precision": 0.7560975609756098,
+      "recall": 0.9393939393939394,
+      "f1-score": 0.8378378378378378,
+      "support": 33.0
+    },
+    "red_soil": {
+      "precision": 0.9736842105263158,
+      "recall": 0.925,
+      "f1-score": 0.9487179487179487,
+      "support": 40.0
+    },
+    "sandy_soil": {
+      "precision": 0.8888888888888888,
+      "recall": 0.8888888888888888,
+      "f1-score": 0.8888888888888888,
+      "support": 9.0
+    },
+    "accuracy": 0.8980582524271845,
+    "macro avg": {
+      "precision": 0.8837937611215535,
+      "recall": 0.9049868341535007,
+      "f1-score": 0.8899187592374999,
+      "support": 206.0
+    },
+    "weighted avg": {
+      "precision": 0.9085480773838163,
+      "recall": 0.8980582524271845,
+      "f1-score": 0.8988971921844093,
+      "support": 206.0
+    }
+  },
+  "classification_report_text": "               precision    recall  f1-score   support\n\nalluvial_soil       0.93      0.77      0.84        52\n   black_soil       0.98      0.96      0.97        54\n    clay_soil       0.77      0.94      0.85        18\nlaterite_soil       0.76      0.94      0.84        33\n     red_soil       0.97      0.93      0.95        40\n   sandy_soil       0.89      0.89      0.89         9\n\n     accuracy                           0.90       206\n    macro avg       0.88      0.90      0.89       206\n weighted avg       0.91      0.90      0.90       206\n",
+  "confusion_matrix": [
+    [
+      40,
+      1,
+      4,
+      7,
+      0,
+      0
+    ],
+    [
+      0,
+      52,
+      0,
+      1,
+      0,
+      1
+    ],
+    [
+      0,
+      0,
+      17,
+      1,
+      0,
+      0
+    ],
+    [
+      1,
+      0,
+      0,
+      31,
+      1,
+      0
+    ],
+    [
+      2,
+      0,
+      1,
+      0,
+      37,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      1,
+      0,
+      8
+    ]
+  ],
+  "total_test_samples": 206,
+  "best_epoch": 7,
+  "total_training_time_seconds": 615.1342828273773
+}

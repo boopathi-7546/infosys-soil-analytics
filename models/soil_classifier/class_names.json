@@ -1,0 +1,19 @@
+{
+  "classes": [
+    "alluvial_soil",
+    "black_soil",
+    "clay_soil",
+    "laterite_soil",
+    "red_soil",
+    "sandy_soil"
+  ],
+  "class_to_idx": {
+    "alluvial_soil": 0,
+    "black_soil": 1,
+    "clay_soil": 2,
+    "laterite_soil": 3,
+    "red_soil": 4,
+    "sandy_soil": 5
+  },
+  "num_classes": 6
+}
