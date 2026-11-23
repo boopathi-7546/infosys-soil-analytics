@@ -44,6 +44,7 @@ class Field(Base):
     farmer: Mapped[Farmer | None] = relationship(back_populates="fields")
     soil_tests: Mapped[list["SoilTest"]] = relationship(back_populates="field", cascade="all, delete-orphan")
     images: Mapped[list["SoilImage"]] = relationship(back_populates="field", cascade="all, delete-orphan")
+    analysis_results: Mapped[list["AnalysisResult"]] = relationship(back_populates="field", cascade="all, delete-orphan")
 
 
 class SoilTest(Base):
@@ -78,6 +79,7 @@ class SoilImage(Base):
     uploaded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     field: Mapped[Field] = relationship(back_populates="images")
+    analysis_results: Mapped[list["AnalysisResult"]] = relationship(back_populates="image", cascade="all, delete-orphan")
 
 
 class AnalysisResult(Base):
@@ -86,7 +88,11 @@ class AnalysisResult(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     field_id: Mapped[int] = mapped_column(ForeignKey("fields.id", ondelete="CASCADE"), index=True)
-    image_id: Mapped[int | None] = mapped_column(ForeignKey("soil_images.id", ondelete="SET NULL"))
-    soil_test_id: Mapped[int | None] = mapped_column(ForeignKey("soil_tests.id", ondelete="SET NULL"))
+    image_id: Mapped[int | None] = mapped_column(ForeignKey("soil_images.id", ondelete="SET NULL"), index=True)
+    soil_test_id: Mapped[int | None] = mapped_column(ForeignKey("soil_tests.id", ondelete="SET NULL"), index=True)
     result: Mapped[dict] = mapped_column(JsonType)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    field: Mapped[Field] = relationship(back_populates="analysis_results")
+    image: Mapped[SoilImage | None] = relationship(back_populates="analysis_results")
+    soil_test: Mapped[SoilTest | None] = relationship()

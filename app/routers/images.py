@@ -6,16 +6,24 @@ from sqlalchemy.orm import Session
 
 from .. import config
 from ..database import get_db
-from ..models import Farmer, Field, SoilImage
+from ..models import AnalysisResult, Farmer, Field, SoilImage
 from ..schemas import (
     Base64UploadIn,
     ImageOut,
     ImageUploadOut,
     PreprocessResult,
+    PredictionHistoryItem,
+    SoilPredictionData,
+    SoilPredictionOut,
 )
 from ..services import preprocessing, storage
 from ..services.auth import get_current_farmer
 from ..services.image_validation import ImageValidationError, validate_and_normalize
+from ..services.soil_classifier import (
+    InvalidImagePredictionError,
+    SoilModelError,
+    get_soil_classifier,
+)
 from .fields import get_farmer_field_or_404
 
 router = APIRouter(tags=["images"])
@@ -244,3 +252,144 @@ def preprocess_and_inspect(
         quality_ok=res["quality_ok"],
         rejection_reason=res["rejection_reason"],
     )
+
+
+# ---------------------------------------------------------------------------
+# CNN Soil Prediction Endpoints
+# ---------------------------------------------------------------------------
+@router.post("/images/{image_id}/predict", response_model=SoilPredictionOut, status_code=status.HTTP_200_OK)
+def predict_soil_image(
+    image_id: int,
+    current_farmer: Farmer = Depends(get_current_farmer),
+    db: Session = Depends(get_db),
+):
+    """
+    Run CNN soil prediction on an uploaded image and store results in PostgreSQL.
+    Strictly verifies ownership: Farmer A cannot run predictions on Farmer B's images.
+    """
+    image = _get_farmer_image_or_404(image_id, current_farmer, db)
+
+    try:
+        raw_bytes = storage.read_image(image.file_path)
+    except FileNotFoundError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image file missing on disk")
+
+    classifier = get_soil_classifier()
+    try:
+        pred_data = classifier.predict(raw_bytes)
+    except SoilModelError as sme:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Soil classification model unavailable: {sme}",
+        )
+    except InvalidImagePredictionError as ipe:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid or unreadable image data: {ipe}",
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"CNN inference failure: {exc}",
+        )
+
+    # Save prediction details in PostgreSQL linked to image, field and farmer
+    analysis_record = AnalysisResult(
+        field_id=image.field_id,
+        image_id=image.id,
+        result=pred_data,
+    )
+    db.add(analysis_record)
+    db.commit()
+    db.refresh(analysis_record)
+
+    return SoilPredictionOut(
+        id=analysis_record.id,
+        field_id=analysis_record.field_id,
+        image_id=analysis_record.image_id,
+        soil_test_id=analysis_record.soil_test_id,
+        created_at=analysis_record.created_at,
+        prediction=SoilPredictionData(**pred_data),
+    )
+
+
+@router.get("/images/{image_id}/prediction", response_model=SoilPredictionOut)
+def get_image_prediction(
+    image_id: int,
+    current_farmer: Farmer = Depends(get_current_farmer),
+    db: Session = Depends(get_db),
+):
+    """Get the latest recorded CNN prediction for a specific image."""
+    image = _get_farmer_image_or_404(image_id, current_farmer, db)
+    analysis = db.scalars(
+        select(AnalysisResult)
+        .where(AnalysisResult.image_id == image.id)
+        .order_by(AnalysisResult.created_at.desc(), AnalysisResult.id.desc())
+    ).first()
+
+    if not analysis:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No prediction found for this image")
+
+    return SoilPredictionOut(
+        id=analysis.id,
+        field_id=analysis.field_id,
+        image_id=analysis.image_id,
+        soil_test_id=analysis.soil_test_id,
+        created_at=analysis.created_at,
+        prediction=SoilPredictionData(**analysis.result),
+    )
+
+
+@router.get("/predictions", response_model=list[PredictionHistoryItem])
+def list_prediction_history(
+    field_id: int | None = Query(default=None, description="Filter predictions by field ID"),
+    current_farmer: Farmer = Depends(get_current_farmer),
+    db: Session = Depends(get_db),
+):
+    """
+    Retrieve all saved AI predictions for the authenticated farmer's plots.
+    Strictly isolated: only returns predictions belonging to the authenticated farmer.
+    """
+    query = (
+        select(AnalysisResult, Field.name.label("field_name"))
+        .join(Field, AnalysisResult.field_id == Field.id)
+        .where(Field.farmer_id == current_farmer.id)
+        .order_by(AnalysisResult.created_at.desc(), AnalysisResult.id.desc())
+    )
+
+    if field_id is not None:
+        get_farmer_field_or_404(field_id, current_farmer, db)
+        query = query.where(AnalysisResult.field_id == field_id)
+
+    rows = db.execute(query).all()
+    results: list[PredictionHistoryItem] = []
+    for analysis, field_name in rows:
+        res = analysis.result or {}
+        if "predicted_soil_type" not in res:
+            continue
+        results.append(
+            PredictionHistoryItem(
+                id=analysis.id,
+                field_id=analysis.field_id,
+                field_name=field_name,
+                image_id=analysis.image_id,
+                created_at=analysis.created_at,
+                predicted_soil_type=res.get("predicted_soil_type", "unknown"),
+                confidence=res.get("confidence", 0.0),
+                confidence_percentage=res.get("confidence_percentage", 0.0),
+                probabilities=res.get("probabilities", {}),
+                model_version=res.get("model_version", "efficientnet_b0_v1.0"),
+                best_epoch=res.get("best_epoch"),
+            )
+        )
+    return results
+
+
+@router.get("/fields/{field_id}/predictions", response_model=list[PredictionHistoryItem])
+def list_field_predictions(
+    field_id: int,
+    current_farmer: Farmer = Depends(get_current_farmer),
+    db: Session = Depends(get_db),
+):
+    """Retrieve saved predictions for a specific field owned by the authenticated farmer."""
+    return list_prediction_history(field_id=field_id, current_farmer=current_farmer, db=db)

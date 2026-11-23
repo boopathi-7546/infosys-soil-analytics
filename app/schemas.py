@@ -157,3 +157,40 @@ class DatasetStatusOut(BaseModel):
     total_raw_images: int
     total_processed_images: int
     sources: list[dict[str, Any]]
+
+
+# ---------------------------------------------------------------------------
+# CNN Soil Prediction Schemas
+# ---------------------------------------------------------------------------
+class SoilPredictionData(BaseModel):
+    predicted_soil_type: str
+    confidence: float
+    confidence_percentage: float
+    probabilities: dict[str, float]
+    model_version: str
+    best_epoch: int | None = None
+    type: str = "cnn_prediction"
+
+
+class SoilPredictionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    field_id: int
+    image_id: int | None = None
+    soil_test_id: int | None = None
+    created_at: datetime
+    prediction: SoilPredictionData
+
+
+class PredictionHistoryItem(BaseModel):
+    id: int
+    field_id: int
+    field_name: str | None = None
+    image_id: int | None = None
+    created_at: datetime
+    predicted_soil_type: str
+    confidence: float
+    confidence_percentage: float
+    probabilities: dict[str, float]
+    model_version: str
+    best_epoch: int | None = None

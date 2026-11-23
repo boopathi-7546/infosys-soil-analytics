@@ -2591,6 +2591,17 @@ function renderAnalyze(container) {
         </div>
       </div>
       <div id="preprocessWarnings" style="margin-top: 12px;"></div>
+
+      <!-- Live CNN Soil Prediction Result -->
+      <div id="cnnPredictionSection" style="margin-top: 20px; border-top: 1px dashed var(--border); padding-top: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+          <div>
+            <h4 style="font-size: 15px; font-weight: 700; color: var(--primary); margin: 0;">🧠 EfficientNet-B0 Live Soil Classification</h4>
+            <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">Real-time AI inference across 6 soil categories • Stored in PostgreSQL</p>
+          </div>
+        </div>
+        <div id="cnnPredictionResultBox"></div>
+      </div>
     </div>
 
     <!-- Soil Laboratory Data Form (Module 2) -->
@@ -2848,9 +2859,78 @@ function showPreprocessResult(imageId, warnings = []) {
   } else {
     warnDiv.innerHTML = `
       <div style="background: var(--status-green-bg); color: var(--status-green); padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: 600;">
-        ✓ Image passes all quality checks (variance, lightness, resolution). Ready for CNN inference.
+        ✓ Image passes all quality checks (variance, lightness, resolution). Running CNN prediction...
       </div>
     `;
+  }
+
+  // Trigger real-time CNN prediction
+  runLivePrediction(imageId);
+}
+
+async function runLivePrediction(imageId) {
+  const resultBox = document.getElementById('cnnPredictionResultBox');
+  if (!resultBox) return;
+  resultBox.innerHTML = `
+    <div style="padding: 16px; background: #F8FAF9; border-radius: 8px; text-align: center; color: var(--text-muted); font-size: 13px;">
+      <span style="display: inline-block; animation: spin 1s linear infinite; margin-right: 6px;">⏳</span> Running EfficientNet-B0 inference across 6 soil categories...
+    </div>
+  `;
+  try {
+    const res = await fetchApi(`/api/images/${imageId}/predict`, { method: 'POST' });
+    const pred = res.prediction;
+    const formatName = (k) => k.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+    const probs = pred.probabilities || {};
+    const probEntries = Object.entries(probs).sort((a, b) => b[1] - a[1]);
+
+    resultBox.innerHTML = `
+      <div style="background: #F4FBF7; border: 1px solid #A7F3D0; border-radius: 8px; padding: 16px; margin-top: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+          <div>
+            <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #047857; letter-spacing: 0.5px;">Predicted Soil Type</span>
+            <div style="font-size: 20px; font-weight: 800; color: var(--primary);">
+              🌱 ${formatName(pred.predicted_soil_type)}
+              <span class="status-badge green" style="font-size: 13px; margin-left: 8px;">${pred.confidence_percentage}% Confidence</span>
+            </div>
+          </div>
+          <div style="text-align: right; font-size: 12px; color: var(--text-muted);">
+            <div><b>Model:</b> ${pred.model_version}</div>
+            <div><b>Saved to DB:</b> Record #<code>${res.id}</code></div>
+          </div>
+        </div>
+
+        <div style="margin-top: 10px;">
+          <div style="font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 8px;">Class Probability Distribution:</div>
+          <div style="display: grid; gap: 8px;">
+            ${probEntries.map(([cls, p]) => {
+              const pct = (p * 100).toFixed(1);
+              const isTop = cls === pred.predicted_soil_type;
+              return `
+                <div>
+                  <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: ${isTop ? '700' : '500'}; color: ${isTop ? 'var(--primary)' : 'var(--text)'};">
+                    <span>${formatName(cls)} ${isTop ? '★ (Predicted)' : ''}</span>
+                    <span>${pct}%</span>
+                  </div>
+                  <div style="width: 100%; height: 6px; background: #E2E8F0; border-radius: 3px; overflow: hidden; margin-top: 2px;">
+                    <div style="width: ${pct}%; height: 100%; background: ${isTop ? 'var(--primary)' : '#94A3B8'}; border-radius: 3px; transition: width 0.4s ease;"></div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+    showToast(`AI classified soil: ${formatName(pred.predicted_soil_type)} (${pred.confidence_percentage}%)`, 'success');
+  } catch (err) {
+    resultBox.innerHTML = `
+      <div style="background: #FEF2F2; border: 1px solid #FECACA; border-radius: 8px; padding: 12px; color: #991B1B; font-size: 13px;">
+        ⚠️ AI prediction failed: ${err.message}
+        <button class="btn btn-sm btn-outline" style="margin-left: 8px;" onclick="runLivePrediction(${imageId})">Retry</button>
+      </div>
+    `;
+    showToast('AI prediction notice: ' + err.message, 'info');
   }
 }
 
@@ -3071,9 +3151,21 @@ window.setHistoryFilter = (mode) => {
   renderHistory(document.getElementById('mainContent'));
 };
 
+window.runPredictionFromHistory = async (imageId) => {
+  try {
+    showToast('Running live CNN soil classification...', 'info');
+    await fetchApi(`/api/images/${imageId}/predict`, { method: 'POST' });
+    showToast('Soil classified and stored in PostgreSQL!', 'success');
+    renderHistory(document.getElementById('mainContent'));
+  } catch (err) {
+    showToast('Prediction error: ' + err.message, 'error');
+  }
+};
+
 async function renderHistory(container) {
   let tests = [];
   let images = [];
+  let predictions = [];
   const isAllFarms = state.historyFilter === 'all';
   const activeFarm = (state.fields || []).find(f => f.id === state.activeFieldId);
 
@@ -3081,15 +3173,19 @@ async function renderHistory(container) {
     if (isAllFarms || !state.activeFieldId) {
       tests = await fetchApi('/api/soil-tests');
       images = await fetchApi('/api/images');
+      predictions = await fetchApi('/api/predictions');
     } else {
       tests = await fetchApi(`/api/fields/${state.activeFieldId}/soil-tests`);
       images = await fetchApi(`/api/fields/${state.activeFieldId}/images`);
+      predictions = await fetchApi(`/api/fields/${state.activeFieldId}/predictions`);
     }
   } catch (e) {
     console.warn('Error loading soil history:', e);
   }
 
   const farmMap = new Map((state.fields || []).map(f => [f.id, f.name]));
+  const predByImg = new Map((predictions || []).map(p => [p.image_id, p]));
+  const formatName = (k) => (k || '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
   container.innerHTML = `
     <div class="card">
@@ -3157,6 +3253,60 @@ async function renderHistory(container) {
       `}
     </div>
 
+    <!-- AI Soil Predictions History Card -->
+    <div class="card">
+      <div class="card-header" style="flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;">
+        <div>
+          <h3 class="card-title">🧠 AI Soil Classification History (EfficientNet-B0)</h3>
+          <p class="card-subtitle">
+            ${isAllFarms ? 'Live neural predictions across all plots' : `Predictions for ${activeFarm ? activeFarm.name : 'selected plot'}`} • <b>${predictions.length}</b> saved prediction${predictions.length === 1 ? '' : 's'} (stored in PostgreSQL)
+          </p>
+        </div>
+      </div>
+
+      ${predictions.length === 0 ? `
+        <div style="text-align: center; padding: 32px; color: var(--text-muted);">
+          <div style="font-size: 32px; margin-bottom: 8px;">🧠</div>
+          <p style="font-size: 14px;">No AI soil predictions saved yet. Upload a soil photo in "Analyze Soil" to run real-time classification.</p>
+        </div>
+      ` : `
+        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+          <table>
+            <thead style="position: sticky; top: 0; background: #F8F6F0; z-index: 5;">
+              <tr>
+                <th>Record #</th>
+                <th>Photo</th>
+                ${isAllFarms ? '<th>Farm Plot</th>' : ''}
+                <th>Predicted Soil Type</th>
+                <th>Confidence</th>
+                <th>Model Version</th>
+                <th>Prediction Timestamp</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${predictions.map(p => {
+                const plotName = p.field_name || farmMap.get(p.field_id) || `Plot #${p.field_id}`;
+                return `
+                <tr>
+                  <td><code>#${p.id}</code></td>
+                  <td>
+                    ${p.image_id ? `<img src="${authImgUrl('/api/images/' + p.image_id + '/file')}" style="width: 44px; height: 44px; object-fit: cover; border-radius: 6px;" alt="Soil Capture">` : '–'}
+                  </td>
+                  ${isAllFarms ? `<td><b>${plotName}</b></td>` : ''}
+                  <td>
+                    <span class="status-badge green" style="font-weight: 700;">🌱 ${formatName(p.predicted_soil_type)}</span>
+                  </td>
+                  <td><b>${p.confidence_percentage}%</b></td>
+                  <td><span style="font-size: 11px; color: var(--text-muted);">${p.model_version}</span></td>
+                  <td>${new Date(p.created_at).toLocaleString()}</td>
+                </tr>
+              `}).join('')}
+            </tbody>
+          </table>
+        </div>
+      `}
+    </div>
+
     <!-- Gallery of Previously Uploaded Images -->
     <div class="card">
       <div class="card-header" style="flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;">
@@ -3170,9 +3320,10 @@ async function renderHistory(container) {
       ${images.length === 0 ? `
         <p style="color: var(--text-muted); font-size: 14px; padding: 12px 0;">No photographs uploaded yet.</p>
       ` : `
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; max-height: 480px; overflow-y: auto;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 14px; max-height: 480px; overflow-y: auto;">
           ${images.map(img => {
             const plotName = farmMap.get(img.field_id);
+            const pred = predByImg.get(img.id);
             return `
             <div style="border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: #FFF;">
               <img src="${authImgUrl(`/api/images/${img.id}/file`)}" style="width: 100%; height: 110px; object-fit: cover;" alt="Soil Capture">
@@ -3180,10 +3331,19 @@ async function renderHistory(container) {
                 <div style="font-weight: 700; color: var(--primary);">${img.original_format} • ${img.width}×${img.height}</div>
                 ${plotName ? `<div style="color: var(--primary-light); font-weight: 600; font-size: 10px;">📍 ${plotName}</div>` : ''}
                 <div style="color: var(--text-muted);">${new Date(img.uploaded_at).toLocaleDateString()}</div>
-                <div style="margin-top: 4px;">
-                  <span class="status-badge ${img.blur_score >= 60 ? 'green' : 'yellow'}">
+                <div style="margin-top: 4px; display: flex; flex-direction: column; gap: 4px;">
+                  <span class="status-badge ${img.blur_score >= 60 ? 'green' : 'yellow'}" style="font-size: 10px;">
                     ${img.blur_score >= 60 ? 'Sharp' : 'Blurry'} (${img.blur_score ? img.blur_score.toFixed(0) : '–'})
                   </span>
+                  ${pred ? `
+                    <span class="status-badge green" style="font-size: 10px; font-weight: 700;" title="Confidence: ${pred.confidence_percentage}%">
+                      🌱 ${formatName(pred.predicted_soil_type)} (${pred.confidence_percentage}%)
+                    </span>
+                  ` : `
+                    <button class="btn btn-outline btn-sm" style="font-size: 10px; padding: 2px 4px; margin-top: 2px;" onclick="runPredictionFromHistory(${img.id})">
+                      ⚡ AI Classify
+                    </button>
+                  `}
                 </div>
               </div>
             </div>
