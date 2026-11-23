@@ -74,3 +74,4 @@ def test_training_and_validation_epoch():
     assert val_loss > 0.0
     assert 0.0 <= val_acc <= 1.0
     assert 0.0 <= val_f1 <= 1.0
+

@@ -8,7 +8,7 @@ from sqlalchemy import text
 
 from . import config
 from .database import Base, engine
-from .routers import auth, dataset, fields, images, soil_tests
+from .routers import auth, cnn, dataset, fields, images, soil_tests
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -54,6 +54,7 @@ app.include_router(fields.router)
 app.include_router(images.router)
 app.include_router(soil_tests.router)
 app.include_router(dataset.router)
+app.include_router(cnn.router)
 
 # Include routers with /api prefix (standard REST convention)
 app.include_router(auth.router, prefix="/api")
@@ -61,6 +62,7 @@ app.include_router(fields.router, prefix="/api")
 app.include_router(images.router, prefix="/api")
 app.include_router(soil_tests.router, prefix="/api")
 app.include_router(dataset.router, prefix="/api")
+app.include_router(cnn.router, prefix="/api")
 
 
 @app.get("/", include_in_schema=False)
