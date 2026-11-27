@@ -37,3 +37,5 @@ data/raw_sample/
 # OS
 .DS_Store
 Thumbs.db
+
+data/external/
