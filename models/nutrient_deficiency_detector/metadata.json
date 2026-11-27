@@ -1,0 +1,76 @@
+{
+  "model_name": "nutrient_deficiency_detector",
+  "model_version": "plant_deficiency_efficientnet_b0_v1.0",
+  "architecture": "EfficientNet-B0 (PyTorch)",
+  "dataset": "Maize Phosphorus Leaf Deficiency (MPLD) Database (Zenodo 10.5281/zenodo.10041514)",
+  "dataset_version": "1.0",
+  "license": "CC BY 4.0",
+  "training_date": "2026-11-27",
+  "random_seed": 42,
+  "best_epoch": 3,
+  "classes": [
+    "-p",
+    "-p50",
+    "_c"
+  ],
+  "train_samples": 1680,
+  "val_samples": 360,
+  "test_samples": 360,
+  "metrics": {
+    "accuracy": 0.8722,
+    "macro_precision": 0.8739,
+    "macro_recall": 0.8722,
+    "macro_f1": 0.8723,
+    "confusion_matrix": [
+      [
+        111,
+        4,
+        5
+      ],
+      [
+        7,
+        105,
+        8
+      ],
+      [
+        2,
+        20,
+        98
+      ]
+    ],
+    "classification_report": {
+      "-p": {
+        "precision": 0.925,
+        "recall": 0.925,
+        "f1-score": 0.925,
+        "support": 120.0
+      },
+      "-p50": {
+        "precision": 0.813953488372093,
+        "recall": 0.875,
+        "f1-score": 0.8433734939759037,
+        "support": 120.0
+      },
+      "_c": {
+        "precision": 0.8828828828828829,
+        "recall": 0.8166666666666667,
+        "f1-score": 0.8484848484848485,
+        "support": 120.0
+      },
+      "accuracy": 0.8722222222222222,
+      "macro avg": {
+        "precision": 0.8739454570849919,
+        "recall": 0.8722222222222222,
+        "f1-score": 0.8722861141535841,
+        "support": 360.0
+      },
+      "weighted avg": {
+        "precision": 0.8739454570849919,
+        "recall": 0.8722222222222222,
+        "f1-score": 0.8722861141535841,
+        "support": 360.0
+      }
+    }
+  },
+  "limitations": "Visual nutrient deficiency indication from plant leaf image only; not a laboratory soil NPK measurement."
+}

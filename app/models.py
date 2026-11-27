@@ -52,16 +52,26 @@ class SoilTest(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     field_id: Mapped[int] = mapped_column(ForeignKey("fields.id", ondelete="CASCADE"), index=True)
-    nitrogen: Mapped[float] = mapped_column(Float)         # kg/ha
-    phosphorus: Mapped[float] = mapped_column(Float)       # kg/ha
-    potassium: Mapped[float] = mapped_column(Float)        # kg/ha
+    nitrogen: Mapped[float] = mapped_column(Float)         # default unit: kg/ha
+    phosphorus: Mapped[float] = mapped_column(Float)       # default unit: kg/ha
+    potassium: Mapped[float] = mapped_column(Float)        # default unit: kg/ha
+    nitrogen_unit: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    phosphorus_unit: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    potassium_unit: Mapped[str | None] = mapped_column(String(20), nullable=True)
     ph: Mapped[float] = mapped_column(Float)
     organic_matter: Mapped[float] = mapped_column(Float)   # %
     moisture: Mapped[float] = mapped_column(Float)         # %
+    testing_method: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    sample_depth_cm: Mapped[float | None] = mapped_column(Float, nullable=True)
+    bulk_density: Mapped[float | None] = mapped_column(Float, nullable=True)
+    bulk_density_unit: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    sample_collected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    verification_status: Mapped[str | None] = mapped_column(String(40), nullable=True, index=True)
     notes: Mapped[str | None] = mapped_column(String(500))
     tested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
 
     field: Mapped[Field] = relationship(back_populates="soil_tests")
+    images: Mapped[list["SoilImage"]] = relationship(back_populates="soil_test")
 
 
 class SoilImage(Base):
@@ -69,6 +79,9 @@ class SoilImage(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     field_id: Mapped[int] = mapped_column(ForeignKey("fields.id", ondelete="CASCADE"), index=True)
+    soil_test_id: Mapped[int | None] = mapped_column(
+        ForeignKey("soil_tests.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     file_path: Mapped[str] = mapped_column(String(500))    # relative to UPLOAD_DIR
     original_filename: Mapped[str | None] = mapped_column(String(255))
     original_format: Mapped[str] = mapped_column(String(10))
@@ -79,6 +92,7 @@ class SoilImage(Base):
     uploaded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     field: Mapped[Field] = relationship(back_populates="images")
+    soil_test: Mapped[SoilTest | None] = relationship(back_populates="images")
     analysis_results: Mapped[list["AnalysisResult"]] = relationship(back_populates="image", cascade="all, delete-orphan")
 
 

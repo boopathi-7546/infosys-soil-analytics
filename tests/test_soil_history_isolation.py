@@ -34,6 +34,18 @@ def register_farmer(client, name: str, email: str, password: str = "password123"
         "email": email,
         "password": password,
     })
+    if res.status_code == 400 and "Email already registered" in res.text:
+        login_res = client.post("/api/auth/login", json={
+            "email": email,
+            "password": password,
+        })
+        assert login_res.status_code == 200, login_res.text
+        data = login_res.json()
+        return {
+            "farmer": data["farmer"],
+            "token": data["access_token"],
+            "headers": {"Authorization": f"Bearer {data['access_token']}"},
+        }
     assert res.status_code == 201, res.text
     data = res.json()
     return {
@@ -242,3 +254,152 @@ def test_field_soil_photograph_isolation_and_all_images_endpoint(client):
     # IDOR check on image download
     r_bad_download = client.get(f"/api/images/{img_y_id}/file", headers=acc_x["headers"])
     assert r_bad_download.status_code == 404
+
+
+def test_soil_test_detail_view_and_advisory_isolation(client):
+    """
+    Verify detailed view of a historical soil test:
+    - Returns full stored parameters (N, P, K, units, pH, OM, moisture)
+    - Returns enriched metadata (field_name, sequential test_number, display_id)
+    - Returns optional fields (electrical_conductivity, organic_carbon, etc.) as None if unrecorded
+    - Returns advisory strictly calculated for the selected test
+    - Enforces IDOR protection on both soil-test details and advisory
+    - Returns 404 for non-existent test IDs
+    """
+    farmer1 = register_farmer(client, "Detail Farmer 1", "detail1@soilanalytics.io")
+    farmer2 = register_farmer(client, "Detail Farmer 2", "detail2@soilanalytics.io")
+
+    # Farmer 1 creates field and submits two tests with different values
+    f1 = client.post("/api/fields", json={"name": "Thanjavur Delta 1"}, headers=farmer1["headers"]).json()["id"]
+
+    # Test A: Low pH (acidic)
+    t1_res = client.post(f"/api/fields/{f1}/soil-tests", json={
+        "nitrogen": 80.0,
+        "phosphorus": 15.0,
+        "potassium": 90.0,
+        "ph": 5.2,
+        "organic_matter": 0.8,
+        "moisture": 18.0,
+        "notes": "Sample from north ridge",
+    }, headers=farmer1["headers"])
+    assert t1_res.status_code == 201
+    t1_id = t1_res.json()["id"]
+
+    # Test B: Neutral pH, high fertility
+    t2_res = client.post(f"/api/fields/{f1}/soil-tests", json={
+        "nitrogen": 220.0,
+        "phosphorus": 45.0,
+        "potassium": 210.0,
+        "ph": 6.8,
+        "organic_matter": 2.5,
+        "moisture": 45.0,
+        "notes": "Sample after organic composting",
+    }, headers=farmer1["headers"])
+    assert t2_res.status_code == 201
+    t2_id = t2_res.json()["id"]
+
+    # 1. Fetch details for Test A
+    res_a = client.get(f"/api/soil-tests/{t1_id}", headers=farmer1["headers"])
+    assert res_a.status_code == 200
+    data_a = res_a.json()
+    assert data_a["id"] == t1_id
+    assert data_a["field_id"] == f1
+    assert data_a["field_name"] == "Thanjavur Delta 1"
+    assert data_a["nitrogen"] == 80.0
+    assert data_a["nitrogen_unit"] == "kg/ha"
+    assert data_a["phosphorus"] == 15.0
+    assert data_a["phosphorus_unit"] == "kg/ha"
+    assert data_a["potassium"] == 90.0
+    assert data_a["potassium_unit"] == "kg/ha"
+    assert data_a["ph"] == 5.2
+    assert data_a["organic_matter"] == 0.8
+    assert data_a["moisture"] == 18.0
+    assert data_a["notes"] == "Sample from north ridge"
+    assert data_a["health_score"] is not None
+    assert data_a["electrical_conductivity"] is None
+    assert data_a["organic_carbon"] is None
+
+    # 2. Fetch advisory specifically for Test A
+    adv_a = client.get(f"/api/soil-tests/{t1_id}/advisory", headers=farmer1["headers"])
+    assert adv_a.status_code == 200
+    adv_data_a = adv_a.json()
+    assert adv_data_a["soil_test_id"] == t1_id
+    # Test A had acidic pH 5.2 and low N (< 100) -> warnings or recs must reflect this
+    assert any("acidic" in w.lower() for w in adv_data_a["warnings"]) or any("lime" in r.lower() for r in adv_data_a["recommendations"])
+
+    # 3. Fetch advisory specifically for Test B
+    adv_b = client.get(f"/api/soil-tests/{t2_id}/advisory", headers=farmer1["headers"])
+    assert adv_b.status_code == 200
+    adv_data_b = adv_b.json()
+    assert adv_data_b["soil_test_id"] == t2_id
+    assert adv_data_b["health_score"] > adv_data_a["health_score"]
+
+    # 4. Cross-Farmer IDOR Protection
+    assert client.get(f"/api/soil-tests/{t1_id}", headers=farmer2["headers"]).status_code == 404
+    assert client.get(f"/api/soil-tests/{t1_id}/advisory", headers=farmer2["headers"]).status_code == 404
+
+    # 5. Non-existent test ID -> 404
+    assert client.get("/api/soil-tests/999999", headers=farmer1["headers"]).status_code == 404
+    assert client.get("/api/soil-tests/999999/advisory", headers=farmer1["headers"]).status_code == 404
+
+    # 6. Unauthenticated requests -> 401
+    assert client.get(f"/api/soil-tests/{t1_id}").status_code == 401
+    assert client.get(f"/api/soil-tests/{t1_id}/advisory").status_code == 401
+
+
+def test_unclaimed_field_and_soil_test_idor_blocked(client):
+    """Unclaimed records (farmer_id IS NULL) must not be accessible to arbitrary farmers."""
+    farmer = register_farmer(client, "Unclaimed Guard Farmer", "unclaimed.guard@example.com")
+
+    db = SessionLocal()
+    try:
+        unclaimed_field = Field(name="Legacy Unassigned Plot", location="Unknown", farmer_id=None)
+        db.add(unclaimed_field)
+        db.commit()
+        db.refresh(unclaimed_field)
+
+        unclaimed_test = SoilTest(
+            field_id=unclaimed_field.id,
+            nitrogen=150.0,
+            phosphorus=30.0,
+            potassium=150.0,
+            ph=6.5,
+            organic_matter=2.0,
+            moisture=35.0,
+        )
+        db.add(unclaimed_test)
+        db.commit()
+        db.refresh(unclaimed_test)
+        uf_id = unclaimed_field.id
+        ut_id = unclaimed_test.id
+    finally:
+        db.close()
+
+    assert client.get(f"/api/fields/{uf_id}", headers=farmer["headers"]).status_code == 404
+    assert client.delete(f"/api/fields/{uf_id}", headers=farmer["headers"]).status_code == 404
+    assert client.get(f"/api/soil-tests/{ut_id}", headers=farmer["headers"]).status_code == 404
+    assert client.get(f"/api/soil-tests/{ut_id}/advisory", headers=farmer["headers"]).status_code == 404
+
+
+def test_frontend_xss_and_scientific_integrity_guards(client):
+    """Frontend HTML must include XSS/URL escaping helpers and omit fabricated metadata fallbacks."""
+    res = client.get("/")
+    assert res.status_code == 200
+    html = res.text
+    assert "function escHtml(" in html
+    assert "function safeUrl(" in html
+    assert "function fmtNum(" in html
+    assert "const safe = safeUrl(url);" in html
+    for cls_name in ("alluvial_soil", "black_soil", "clay_soil", "laterite_soil", "red_soil", "sandy_soil"):
+        assert cls_name in html
+    for forbidden in (
+        "Alkaline permanganate / Lab",
+        "Olsen / Bray / Lab",
+        "Neutral 1N NH4OAc / Lab",
+        "1:2.5 soil-water suspension",
+        "Standard Laboratory Measurement",
+        "Gravimetric / Field Sensor",
+        "ICAR / TNAU Rule Engine",
+        "best_epoch || 7",
+    ):
+        assert forbidden not in html, f"Forbidden fabricated fallback still present: {forbidden}"

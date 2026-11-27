@@ -15,8 +15,8 @@ def get_farmer_field_or_404(field_id: int, current_farmer: Farmer, db: Session) 
     field = db.get(Field, field_id)
     if not field:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Field not found")
-    # If field has an owner and it's not the current farmer, return 404 to avoid leaking field existence
-    if field.farmer_id is not None and field.farmer_id != current_farmer.id:
+    # Strictly require positive ownership match — treat unclaimed (farmer_id IS NULL) as inaccessible
+    if field.farmer_id != current_farmer.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Field not found")
     return field
 

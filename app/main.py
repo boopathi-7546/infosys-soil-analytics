@@ -8,7 +8,7 @@ from sqlalchemy import text
 
 from . import config
 from .database import Base, engine
-from .routers import auth, cnn, dataset, fields, images, soil_tests
+from .routers import auth, cnn, dataset, fields, images, ml_models, soil_tests
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -24,6 +24,8 @@ async def lifespan(app: FastAPI):
     try:
         from scripts.migrate_add_farmer_auth import run_migration
         run_migration(engine)
+        from scripts.migrate_add_ml_collection_fields import run_migration as run_ml_migration
+        run_ml_migration(engine)
     except Exception as e:
         print(f"[STARTUP] Warning during schema migration check: {e}")
     yield
@@ -55,6 +57,7 @@ app.include_router(images.router)
 app.include_router(soil_tests.router)
 app.include_router(dataset.router)
 app.include_router(cnn.router)
+app.include_router(ml_models.router)
 
 # Include routers with /api prefix (standard REST convention)
 app.include_router(auth.router, prefix="/api")
@@ -63,6 +66,7 @@ app.include_router(images.router, prefix="/api")
 app.include_router(soil_tests.router, prefix="/api")
 app.include_router(dataset.router, prefix="/api")
 app.include_router(cnn.router, prefix="/api")
+app.include_router(ml_models.router, prefix="/api")
 
 
 @app.get("/", include_in_schema=False)

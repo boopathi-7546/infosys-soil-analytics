@@ -1,0 +1,60 @@
+{
+  "model_name": "degradation_forecaster",
+  "model_version": "degradation_forecaster_v1.0",
+  "architecture": "Time-Aware XGBClassifier + XGBRegressor (Median Imputer)",
+  "dataset": "SoilHealthDB V2 (Zenodo 10.5281/zenodo.17565204)",
+  "dataset_version": "V2",
+  "license": "CC BY 4.0",
+  "training_date": "2026-11-27",
+  "random_seed": 42,
+  "validation_strategy": "Chronological split: train SamplingYear <= 2009, test SamplingYear > 2009",
+  "train_years_range": [
+    1960,
+    2009
+  ],
+  "test_years_range": [
+    2010,
+    2016
+  ],
+  "train_samples": 1292,
+  "test_samples": 274,
+  "features": [
+    "OC_C",
+    "Duration",
+    "SoilpH",
+    "SoilBD",
+    "SandPerc",
+    "SiltPerc",
+    "ClayPerc",
+    "MAT",
+    "MAP"
+  ],
+  "targets": {
+    "classification": "soc_decline_risk (1 if OC_T < OC_C else 0)",
+    "regression": "soc_change (OC_T - OC_C)"
+  },
+  "metrics": {
+    "classification": {
+      "accuracy": 0.6788,
+      "macro_f1": 0.4532,
+      "roc_auc": 0.4662,
+      "pr_auc": 0.1172,
+      "confusion_matrix": [
+        [
+          181,
+          60
+        ],
+        [
+          28,
+          5
+        ]
+      ]
+    },
+    "regression": {
+      "mae": 0.1461,
+      "rmse": 0.2044,
+      "r2": -0.0008
+    }
+  },
+  "limitations": "ML Soil Degradation Forecast trained on SoilHealthDB V2 multi-site experiments; distinct from descriptive Historical Soil Trend Analysis."
+}

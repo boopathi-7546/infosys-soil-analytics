@@ -1,0 +1,17 @@
+{
+  "model_name": "hybrid_fusion",
+  "model_version": "hybrid_fusion_v1.0",
+  "architecture": "EfficientNet-B0 (1280-D frozen backbone) + Tabular MLP Encoder -> Fusion Head",
+  "status": "architecture_ready_untrained",
+  "tabular_features": [
+    "nitrogen",
+    "phosphorus",
+    "potassium",
+    "ph",
+    "organic_matter",
+    "moisture"
+  ],
+  "dataset": "None (blocked: 0 paired image + soil_test records with ground-truth labels)",
+  "metrics": {},
+  "limitations": "Training requires real co-located (image, soil_test) pairs with verified ground-truth labels."
+}

@@ -53,3 +53,21 @@ def test_cnn_confusion_matrix_endpoint(client):
     assert "image/png" in res.headers.get("content-type", "")
     assert len(res.content) > 1000
 
+
+def test_ml_capabilities_endpoint(client):
+    res = client.get("/api/cnn/capabilities")
+    assert res.status_code == 200
+    data = res.json()
+    assert "active_features" in data
+    assert "blocked_features" in data
+    assert data["active_features"]["soil_type_classification"]["model"] == "EfficientNet-B0"
+    assert data["active_features"]["historical_soil_trends"]["is_ml_forecast"] is False
+    for key in (
+        "soil_texture_classification",
+        "visible_deficiency_classification",
+        "gradient_boosted_nutrient_ml",
+        "shap_explainability",
+        "ml_degradation_forecast",
+    ):
+        assert key in data["active_features"]
+    assert "hybrid_fusion_model" in data["blocked_features"]

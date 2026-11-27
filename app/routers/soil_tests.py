@@ -21,9 +21,10 @@ from sqlalchemy import func as sa_func, select
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import Farmer, Field, SoilTest
-from ..schemas import AdvisoryOut, SoilTestIn, SoilTestOut
+from ..models import AnalysisResult, Farmer, Field, SoilImage, SoilTest
+from ..schemas import AdvisoryOut, SoilTestIn, SoilTestOut, SoilTrendResponseOut
 from ..services.auth import get_current_farmer
+from ..services.soil_trends import compute_historical_soil_trends
 from .fields import get_farmer_field_or_404
 
 router = APIRouter(tags=["soil-tests"])
@@ -64,6 +65,29 @@ def _enrich(obj: SoilTest, test_number: int | None = None, db: Session | None = 
     else:
         out.test_number = obj.id
         out.display_id = obj.id
+    if getattr(obj, "field", None) is not None:
+        out.field_name = obj.field.name
+    out.nitrogen_unit = getattr(obj, "nitrogen_unit", None) or "kg/ha"
+    out.phosphorus_unit = getattr(obj, "phosphorus_unit", None) or "kg/ha"
+    out.potassium_unit = getattr(obj, "potassium_unit", None) or "kg/ha"
+    out.testing_method = getattr(obj, "testing_method", None)
+    out.sample_depth_cm = getattr(obj, "sample_depth_cm", None)
+    out.bulk_density = getattr(obj, "bulk_density", None)
+    out.bulk_density_unit = getattr(obj, "bulk_density_unit", None)
+    out.sample_collected_at = getattr(obj, "sample_collected_at", None)
+    out.verification_status = getattr(obj, "verification_status", None)
+    out.paired_image_ids = [img.id for img in (getattr(obj, "images", None) or [])]
+    out.electrical_conductivity = getattr(obj, "electrical_conductivity", None)
+    out.organic_carbon = getattr(obj, "organic_carbon", None)
+    out.ph_method = getattr(obj, "ph_method", None) or out.testing_method
+    if out.verification_status == "laboratory_verified":
+        out.data_provenance = "Laboratory Verified"
+    elif out.verification_status == "field_sensor_estimate":
+        out.data_provenance = "Field Sensor Estimate (Unverified)"
+    elif out.verification_status == "user_entered_unverified":
+        out.data_provenance = "User-Entered Record (Unverified)"
+    else:
+        out.data_provenance = getattr(obj, "data_provenance", None)
     return out
 
 def _compute_health_score(t: SoilTest) -> float:
@@ -175,8 +199,8 @@ def _get_farmer_soil_test_or_404(test_id: int, current_farmer: Farmer, db: Sessi
     obj = db.get(SoilTest, test_id)
     if not obj:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Soil test not found")
-    # Verify ownership of the parent field
-    if obj.field and obj.field.farmer_id is not None and obj.field.farmer_id != current_farmer.id:
+    # Strictly require positive ownership match — treat unclaimed (farmer_id IS NULL) as inaccessible
+    if not obj.field or obj.field.farmer_id != current_farmer.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Soil test not found")
     return obj
 
@@ -192,10 +216,44 @@ def create_soil_test(
     current_farmer: Farmer = Depends(get_current_farmer),
     db: Session = Depends(get_db),
 ):
-    """Stores laboratory soil parameters for a field owned by the authenticated farmer."""
+    """Stores soil parameters for a field owned by the authenticated farmer, with optional image pairing."""
     field = get_farmer_field_or_404(field_id, current_farmer, db)
-    obj = SoilTest(field_id=field.id, **body.model_dump())
+    data = body.model_dump()
+    image_id = data.pop("image_id", None)
+    if data.get("verification_status") is None:
+        data["verification_status"] = "user_entered_unverified"
+
+    paired_image: SoilImage | None = None
+    if image_id is not None:
+        paired_image = db.get(SoilImage, image_id)
+        if not paired_image or not paired_image.field or paired_image.field.farmer_id != current_farmer.id:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Soil image not found")
+        if paired_image.field_id != field.id:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="Soil image must belong to the same field as the soil test",
+            )
+        if paired_image.soil_test_id is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Soil image is already paired with another soil test",
+            )
+
+    obj = SoilTest(field_id=field.id, **data)
     db.add(obj)
+    db.flush()
+
+    if paired_image is not None:
+        paired_image.soil_test_id = obj.id
+        analyses = db.scalars(
+            select(AnalysisResult).where(
+                AnalysisResult.image_id == paired_image.id,
+                AnalysisResult.soil_test_id.is_(None),
+            )
+        ).all()
+        for ar in analyses:
+            ar.soil_test_id = obj.id
+
     db.commit()
     db.refresh(obj)
     return _enrich(obj, db=db)
@@ -242,6 +300,34 @@ def list_soil_tests(
 
     rows = db.scalars(stmt).all()
     return [_enrich(r, test_number=num_map.get(r.id), db=db) for r in rows]
+
+
+@router.get("/soil-tests/trends", response_model=SoilTrendResponseOut)
+def get_soil_test_trends(
+    field_id: int | None = Query(default=None, description="Optional field ID filter for historical trend analysis"),
+    current_farmer: Farmer = Depends(get_current_farmer),
+    db: Session = Depends(get_db),
+):
+    """Historical Soil Trend Analysis – Not an ML Forecast (strictly owned by authenticated farmer)."""
+    field_name: str | None = None
+    stmt = (
+        select(SoilTest)
+        .join(Field, SoilTest.field_id == Field.id)
+        .where(Field.farmer_id == current_farmer.id)
+    )
+    if field_id is not None:
+        field = get_farmer_field_or_404(field_id, current_farmer, db)
+        field_name = field.name
+        stmt = stmt.where(SoilTest.field_id == field.id)
+
+    stmt = stmt.order_by(SoilTest.tested_at.asc(), SoilTest.id.asc())
+    rows = db.scalars(stmt).all()
+    return compute_historical_soil_trends(
+        rows,
+        field_id=field_id,
+        field_name=field_name,
+        health_score_fn=_compute_health_score,
+    )
 
 
 @router.get("/soil-tests/{test_id}", response_model=SoilTestOut)

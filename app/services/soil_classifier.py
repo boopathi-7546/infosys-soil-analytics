@@ -20,6 +20,7 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+import cv2
 import numpy as np
 import torch
 import torch.nn as nn
@@ -162,6 +163,103 @@ class SoilClassifier:
                 raise
             logger.exception(f"Prediction inference failure: {exc}")
             raise RuntimeError(f"CNN prediction failure: {exc}") from exc
+
+    def generate_gradcam(
+        self,
+        image_bytes: bytes,
+        target_class: str | None = None,
+        alpha: float = 0.45,
+    ) -> Tuple[bytes, Dict[str, Any]]:
+        """
+        Compute a Grad-CAM attention heatmap for EfficientNet-B0 and overlay it
+        onto the original uploaded soil image without modifying model weights.
+        """
+        self.load_model()
+
+        if not image_bytes:
+            raise InvalidImagePredictionError("Image bytes are empty.")
+
+        try:
+            pil_image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        except Exception as exc:
+            logger.warning(f"Failed to decode image bytes for Grad-CAM: {exc}")
+            raise InvalidImagePredictionError(f"Invalid or unreadable image data: {exc}") from exc
+
+        if target_class is not None and target_class not in self.class_names:
+            raise ValueError(f"Unknown target_class '{target_class}'. Valid classes: {self.class_names}")
+
+        activations: List[torch.Tensor] = []
+        gradients: List[torch.Tensor] = []
+
+        target_layer = self.model.features[-1]
+
+        def _forward_hook(_module: nn.Module, _inp: Tuple[torch.Tensor, ...], out: torch.Tensor) -> None:
+            activations.append(out.detach())
+
+        def _backward_hook(
+            _module: nn.Module,
+            _grad_in: Tuple[Optional[torch.Tensor], ...],
+            grad_out: Tuple[Optional[torch.Tensor], ...],
+        ) -> None:
+            if grad_out and grad_out[0] is not None:
+                gradients.append(grad_out[0].detach())
+
+        fwd_handle = target_layer.register_forward_hook(_forward_hook)
+        bwd_handle = target_layer.register_full_backward_hook(_backward_hook)
+
+        try:
+            tensor = self.transform(pil_image).unsqueeze(0).to(self.device)
+            tensor.requires_grad_(True)
+            self.model.zero_grad(set_to_none=True)
+
+            logits = self.model(tensor)
+            probs = torch.softmax(logits, dim=1).detach().cpu().squeeze(0).numpy()
+            pred_idx = int(np.argmax(probs))
+            target_idx = self.class_names.index(target_class) if target_class is not None else pred_idx
+
+            score = logits[0, target_idx]
+            score.backward()
+
+            if not activations or not gradients:
+                raise RuntimeError("Grad-CAM hooks did not capture activations/gradients.")
+
+            act = activations[0].squeeze(0)  # (C, H, W)
+            grad = gradients[0].squeeze(0)   # (C, H, W)
+
+            weights = torch.mean(grad, dim=(1, 2))  # (C,)
+            cam = torch.sum(weights[:, None, None] * act, dim=0)
+            cam = torch.relu(cam).cpu().numpy()
+
+            cam_max = float(np.max(cam))
+            if cam_max > 1e-8:
+                cam = cam / cam_max
+            else:
+                cam = np.zeros_like(cam, dtype=np.float32)
+
+            orig_rgb = np.array(pil_image)
+            orig_h, orig_w = orig_rgb.shape[:2]
+            cam_resized = cv2.resize(cam.astype(np.float32), (orig_w, orig_h), interpolation=cv2.INTER_LINEAR)
+            heatmap_uint8 = np.uint8(np.clip(cam_resized * 255.0, 0, 255))
+            heatmap_bgr = cv2.applyColorMap(heatmap_uint8, cv2.COLORMAP_JET)
+
+            orig_bgr = cv2.cvtColor(orig_rgb, cv2.COLOR_RGB2BGR)
+            blend_alpha = float(np.clip(alpha, 0.0, 1.0))
+            overlay_bgr = cv2.addWeighted(orig_bgr, 1.0 - blend_alpha, heatmap_bgr, blend_alpha, 0.0)
+
+            ok, encoded = cv2.imencode(".jpg", overlay_bgr, [int(cv2.IMWRITE_JPEG_QUALITY), 90])
+            if not ok:
+                raise RuntimeError("Failed to encode Grad-CAM overlay image as JPEG.")
+
+            return encoded.tobytes(), {
+                "target_class": self.class_names[target_idx],
+                "predicted_soil_type": self.class_names[pred_idx],
+                "confidence_percentage": round(float(probs[pred_idx]) * 100, 2),
+                "model_version": self.model_version,
+            }
+        finally:
+            fwd_handle.remove()
+            bwd_handle.remove()
+            self.model.zero_grad(set_to_none=True)
 
 
 # Global shared classifier instance

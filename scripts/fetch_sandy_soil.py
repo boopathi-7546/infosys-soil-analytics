@@ -33,6 +33,7 @@ seen_hashes = set()
 
 # Pre-populate seen_hashes with already existing files
 for f in DEST_DIR.glob("*.jpg"):
+    
     seen_hashes.add(hashlib.sha256(f.read_bytes()).hexdigest())
 
 count = len([f for f in DEST_DIR.glob("*.jpg")])

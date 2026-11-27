@@ -47,6 +47,18 @@ def register_farmer(client, name: str, email: str, password: str = "password123"
         "/api/auth/register",
         json={"full_name": name, "email": email, "password": password},
     )
+    if res.status_code == 400 and "Email already registered" in res.text:
+        login_res = client.post(
+            "/api/auth/login",
+            json={"email": email, "password": password},
+        )
+        assert login_res.status_code == 200, login_res.text
+        data = login_res.json()
+        return {
+            "farmer": data["farmer"],
+            "token": data["access_token"],
+            "headers": {"Authorization": f"Bearer {data['access_token']}"},
+        }
     assert res.status_code == 201, res.text
     data = res.json()
     return {
@@ -313,3 +325,441 @@ def test_missing_model_file_handling(client):
         res = client.post(f"/api/images/{up_id}/predict", headers=user["headers"])
         assert res.status_code == 503
         assert "Soil classification model unavailable" in res.json()["detail"]
+
+
+def test_get_prediction_detail_endpoint(client):
+    """Test retrieving individual prediction detail, validating response schema and IDOR isolation."""
+    farmer_a = register_farmer(client, "Detail Farmer A", "detail_a@example.com")
+    farmer_b = register_farmer(client, "Detail Farmer B", "detail_b@example.com")
+
+    # Farmer A creates field, uploads image, and runs prediction
+    field_a = client.post("/api/fields", json={"name": "Delta Detail Plot"}, headers=farmer_a["headers"]).json()["id"]
+    img_a = client.post(
+        f"/api/fields/{field_a}/images",
+        files={"file": ("sample.jpg", make_test_image_bytes(seed=701), "image/jpeg")},
+        headers=farmer_a["headers"],
+    ).json()["image"]["id"]
+
+    res_pred = client.post(f"/api/images/{img_a}/predict", headers=farmer_a["headers"])
+    assert res_pred.status_code == 200
+    pred_record_id = res_pred.json()["id"]
+
+    # 1. Farmer A successfully fetches prediction details
+    res_detail = client.get(f"/api/predictions/{pred_record_id}", headers=farmer_a["headers"])
+    assert res_detail.status_code == 200
+    data = res_detail.json()
+    assert data["id"] == pred_record_id
+    assert data["field_id"] == field_a
+    assert data["field_name"] == "Delta Detail Plot"
+    assert data["image_id"] == img_a
+    assert "predicted_soil_type" in data
+    assert "confidence" in data
+    assert "confidence_percentage" in data
+    assert "probabilities" in data
+    assert len(data["probabilities"]) == 6
+    for cls_name in DEFAULT_CLASSES:
+        assert cls_name in data["probabilities"]
+    assert data["model_version"] == "efficientnet_b0_v1.0"
+    assert data["best_epoch"] == 7
+
+    # 2. Farmer B tries to fetch Farmer A's prediction -> 404 (IDOR protected)
+    res_b = client.get(f"/api/predictions/{pred_record_id}", headers=farmer_b["headers"])
+    assert res_b.status_code == 404
+
+    # 3. Non-existent prediction ID -> 404
+    res_404 = client.get("/api/predictions/999999", headers=farmer_a["headers"])
+    assert res_404.status_code == 404
+
+    # 4. Unauthenticated request -> 401
+    res_unauth = client.get(f"/api/predictions/{pred_record_id}")
+    assert res_unauth.status_code == 401
+
+
+def test_prediction_detail_handles_null_optional_fields(client):
+    """Explicit null values in stored AnalysisResult.result must not trigger ValidationError."""
+    farmer = register_farmer(client, "Null Handling Farmer", "null.handler@example.com")
+    field_id = client.post("/api/fields", json={"name": "Null Safe Plot"}, headers=farmer["headers"]).json()["id"]
+    img_id = client.post(
+        f"/api/fields/{field_id}/images",
+        files={"file": ("sample.jpg", make_test_image_bytes(seed=808), "image/jpeg")},
+        headers=farmer["headers"],
+    ).json()["image"]["id"]
+
+    db = SessionLocal()
+    try:
+        null_rec = AnalysisResult(
+            field_id=field_id,
+            image_id=img_id,
+            result={
+                "predicted_soil_type": "clay_soil",
+                "confidence": None,
+                "confidence_percentage": None,
+                "probabilities": None,
+                "model_version": None,
+                "best_epoch": None,
+            },
+        )
+        db.add(null_rec)
+        db.commit()
+        db.refresh(null_rec)
+        rec_id = null_rec.id
+
+        incomplete_rec = AnalysisResult(field_id=field_id, image_id=img_id, result={})
+        db.add(incomplete_rec)
+        db.commit()
+    finally:
+        db.close()
+
+    detail_res = client.get(f"/api/predictions/{rec_id}", headers=farmer["headers"])
+    assert detail_res.status_code == 200
+    body = detail_res.json()
+    assert body["predicted_soil_type"] == "clay_soil"
+    assert body["confidence"] == 0.0
+    assert body["confidence_percentage"] == 0.0
+    assert body["probabilities"] == {}
+    assert body["model_version"] is None
+
+    list_res = client.get("/api/predictions", headers=farmer["headers"])
+    assert list_res.status_code == 200
+    assert any(item["id"] == rec_id for item in list_res.json())
+
+    # Latest AnalysisResult on img_id has empty dict {} -> should return 404 rather than 500
+    latest_res = client.get(f"/api/images/{img_id}/prediction", headers=farmer["headers"])
+    assert latest_res.status_code == 404
+
+
+def test_prediction_endpoints_handle_null_predicted_soil_type(client):
+    """Explicit null predicted_soil_type in JSONB must return 404 (not ValidationError 500)."""
+    farmer = register_farmer(client, "Null Soil Type Farmer", "null.soiltype@example.com")
+    field_id = client.post("/api/fields", json={"name": "Null Soil Type Plot"}, headers=farmer["headers"]).json()["id"]
+    img_id = client.post(
+        f"/api/fields/{field_id}/images",
+        files={"file": ("sample.jpg", make_test_image_bytes(seed=909), "image/jpeg")},
+        headers=farmer["headers"],
+    ).json()["image"]["id"]
+
+    db = SessionLocal()
+    try:
+        # 1. Valid predicted_soil_type with null optional fields -> 200 on get_image_prediction
+        partial_rec = AnalysisResult(
+            field_id=field_id,
+            image_id=img_id,
+            result={
+                "predicted_soil_type": "red_soil",
+                "confidence": None,
+                "confidence_percentage": None,
+                "probabilities": None,
+                "model_version": None,
+            },
+        )
+        db.add(partial_rec)
+        db.commit()
+        db.refresh(partial_rec)
+        partial_id = partial_rec.id
+    finally:
+        db.close()
+
+    partial_res = client.get(f"/api/images/{img_id}/prediction", headers=farmer["headers"])
+    assert partial_res.status_code == 200
+    assert partial_res.json()["prediction"]["predicted_soil_type"] == "red_soil"
+    assert partial_res.json()["prediction"]["probabilities"] == {}
+
+    # 2. Newer record with predicted_soil_type = None -> 404 on get_image_prediction & get_prediction_detail, skipped in list
+    db = SessionLocal()
+    try:
+        null_type_rec = AnalysisResult(
+            field_id=field_id,
+            image_id=img_id,
+            result={
+                "predicted_soil_type": None,
+                "confidence": 0.5,
+                "confidence_percentage": 50.0,
+                "probabilities": {},
+                "model_version": "efficientnet_b0_v1.0",
+            },
+        )
+        db.add(null_type_rec)
+        db.commit()
+        db.refresh(null_type_rec)
+        null_type_id = null_type_rec.id
+    finally:
+        db.close()
+
+    assert client.get(f"/api/images/{img_id}/prediction", headers=farmer["headers"]).status_code == 404
+    assert client.get(f"/api/predictions/{null_type_id}", headers=farmer["headers"]).status_code == 404
+    listed_ids = [item["id"] for item in client.get("/api/predictions", headers=farmer["headers"]).json()]
+    assert partial_id in listed_ids
+    assert null_type_id not in listed_ids
+
+
+def test_prediction_endpoints_handle_malformed_jsonb_values(client):
+    """Malformed JSONB values (bool, NaN, inf, invalid strings, non-dict) must not raise 500."""
+    farmer = register_farmer(client, "Malformed JSONB Farmer", "malformed.jsonb@example.com")
+    field_id = client.post("/api/fields", json={"name": "Malformed JSONB Plot"}, headers=farmer["headers"]).json()["id"]
+    img_id = client.post(
+        f"/api/fields/{field_id}/images",
+        files={"file": ("sample.jpg", make_test_image_bytes(seed=919), "image/jpeg")},
+        headers=farmer["headers"],
+    ).json()["image"]["id"]
+
+    db = SessionLocal()
+    try:
+        malformed_rec = AnalysisResult(
+            field_id=field_id,
+            image_id=img_id,
+            result={
+                "predicted_soil_type": "sandy_soil",
+                "confidence": True,
+                "confidence_percentage": "NaN",
+                "probabilities": {
+                    "sandy_soil": 0.75,
+                    "clay_soil": "invalid",
+                    "red_soil": False,
+                    "black_soil": "inf",
+                },
+                "model_version": 12345,
+                "best_epoch": True,
+            },
+        )
+        db.add(malformed_rec)
+        db.commit()
+        db.refresh(malformed_rec)
+        rec_id = malformed_rec.id
+    finally:
+        db.close()
+
+    res_img = client.get(f"/api/images/{img_id}/prediction", headers=farmer["headers"])
+    assert res_img.status_code == 200
+    pred = res_img.json()["prediction"]
+    assert pred["predicted_soil_type"] == "sandy_soil"
+    assert pred["confidence"] == 0.0
+    assert pred["confidence_percentage"] == 0.0
+    assert pred["model_version"] is None
+    assert pred["best_epoch"] is None
+    assert pred["probabilities"] == {
+        "sandy_soil": 0.75,
+        "clay_soil": 0.0,
+        "red_soil": 0.0,
+        "black_soil": 0.0,
+    }
+
+    res_detail = client.get(f"/api/predictions/{rec_id}", headers=farmer["headers"])
+    assert res_detail.status_code == 200
+    detail = res_detail.json()
+    assert detail["confidence"] == 0.0
+    assert detail["confidence_percentage"] == 0.0
+    assert detail["model_version"] is None
+    assert detail["best_epoch"] is None
+
+
+def test_gradcam_endpoint_returns_overlay_and_enforces_ownership(client):
+    """Grad-CAM endpoint returns valid JPEG heatmap overlay and enforces farmer isolation."""
+    farmer_a = register_farmer(client, "GradCAM Farmer A", "gradcam.a@example.com")
+    farmer_b = register_farmer(client, "GradCAM Farmer B", "gradcam.b@example.com")
+
+    field_a = client.post("/api/fields", json={"name": "GradCAM Plot A"}, headers=farmer_a["headers"]).json()["id"]
+    img_a = client.post(
+        f"/api/fields/{field_a}/images",
+        files={"file": ("soil_sample.jpg", make_test_image_bytes(seed=321), "image/jpeg")},
+        headers=farmer_a["headers"],
+    ).json()["image"]["id"]
+
+    # 1. Authenticated owner retrieves Grad-CAM overlay
+    res = client.get(f"/api/images/{img_a}/gradcam", headers=farmer_a["headers"])
+    assert res.status_code == 200
+    assert res.headers["content-type"].startswith("image/jpeg")
+    assert res.headers["x-gradcam-predicted-class"] in DEFAULT_CLASSES
+    overlay_img = Image.open(io.BytesIO(res.content))
+    assert overlay_img.size == (224, 224)
+
+    # 2. Explicit target_class query parameter works
+    res_target = client.get(
+        f"/api/images/{img_a}/gradcam?target_class=red_soil",
+        headers=farmer_a["headers"],
+    )
+    assert res_target.status_code == 200
+    assert res_target.headers["x-gradcam-target-class"] == "red_soil"
+
+    # 3. Invalid target_class returns 422
+    res_bad_cls = client.get(
+        f"/api/images/{img_a}/gradcam?target_class=invalid_soil",
+        headers=farmer_a["headers"],
+    )
+    assert res_bad_cls.status_code == 422
+
+    # 4. IDOR protection: Farmer B receives 404, unauthenticated receives 401
+    assert client.get(f"/api/images/{img_a}/gradcam", headers=farmer_b["headers"]).status_code == 404
+    assert client.get(f"/api/images/{img_a}/gradcam").status_code == 401
+
+    # 5. Missing checkpoint returns 503
+    with patch.object(SoilClassifier, "load_model", side_effect=SoilModelError("Checkpoint missing")):
+        res_503 = client.get(f"/api/images/{img_a}/gradcam", headers=farmer_a["headers"])
+        assert res_503.status_code == 503
+
+def test_prediction_endpoints_handle_null_predicted_soil_type(client):
+    """Explicit null predicted_soil_type in JSONB must return 404 (not ValidationError 500)."""
+    farmer = register_farmer(client, "Null Soil Type Farmer", "null.soiltype@example.com")
+    field_id = client.post("/api/fields", json={"name": "Null Soil Type Plot"}, headers=farmer["headers"]).json()["id"]
+    img_id = client.post(
+        f"/api/fields/{field_id}/images",
+        files={"file": ("sample.jpg", make_test_image_bytes(seed=909), "image/jpeg")},
+        headers=farmer["headers"],
+    ).json()["image"]["id"]
+
+    db = SessionLocal()
+    try:
+        # 1. Valid predicted_soil_type with null optional fields -> 200 on get_image_prediction
+        partial_rec = AnalysisResult(
+            field_id=field_id,
+            image_id=img_id,
+            result={
+                "predicted_soil_type": "red_soil",
+                "confidence": None,
+                "confidence_percentage": None,
+                "probabilities": None,
+                "model_version": None,
+            },
+        )
+        db.add(partial_rec)
+        db.commit()
+        db.refresh(partial_rec)
+        partial_id = partial_rec.id
+    finally:
+        db.close()
+
+    partial_res = client.get(f"/api/images/{img_id}/prediction", headers=farmer["headers"])
+    assert partial_res.status_code == 200
+    assert partial_res.json()["prediction"]["predicted_soil_type"] == "red_soil"
+    assert partial_res.json()["prediction"]["probabilities"] == {}
+
+    # 2. Newer record with predicted_soil_type = None -> 404 on get_image_prediction & get_prediction_detail, skipped in list
+    db = SessionLocal()
+    try:
+        null_type_rec = AnalysisResult(
+            field_id=field_id,
+            image_id=img_id,
+            result={
+                "predicted_soil_type": None,
+                "confidence": 0.5,
+                "confidence_percentage": 50.0,
+                "probabilities": {},
+                "model_version": "efficientnet_b0_v1.0",
+            },
+        )
+        db.add(null_type_rec)
+        db.commit()
+        db.refresh(null_type_rec)
+        null_type_id = null_type_rec.id
+    finally:
+        db.close()
+
+    assert client.get(f"/api/images/{img_id}/prediction", headers=farmer["headers"]).status_code == 404
+    assert client.get(f"/api/predictions/{null_type_id}", headers=farmer["headers"]).status_code == 404
+    listed_ids = [item["id"] for item in client.get("/api/predictions", headers=farmer["headers"]).json()]
+    assert partial_id in listed_ids
+    assert null_type_id not in listed_ids
+
+
+def test_prediction_endpoints_handle_malformed_jsonb_values(client):
+    """Malformed JSONB values (bool, NaN, inf, invalid strings, non-dict) must not raise 500."""
+    farmer = register_farmer(client, "Malformed JSONB Farmer", "malformed.jsonb@example.com")
+    field_id = client.post("/api/fields", json={"name": "Malformed JSONB Plot"}, headers=farmer["headers"]).json()["id"]
+    img_id = client.post(
+        f"/api/fields/{field_id}/images",
+        files={"file": ("sample.jpg", make_test_image_bytes(seed=919), "image/jpeg")},
+        headers=farmer["headers"],
+    ).json()["image"]["id"]
+
+    db = SessionLocal()
+    try:
+        malformed_rec = AnalysisResult(
+            field_id=field_id,
+            image_id=img_id,
+            result={
+                "predicted_soil_type": "sandy_soil",
+                "confidence": True,
+                "confidence_percentage": "NaN",
+                "probabilities": {
+                    "sandy_soil": 0.75,
+                    "clay_soil": "invalid",
+                    "red_soil": False,
+                    "black_soil": "inf",
+                },
+                "model_version": 12345,
+                "best_epoch": True,
+            },
+        )
+        db.add(malformed_rec)
+        db.commit()
+        db.refresh(malformed_rec)
+        rec_id = malformed_rec.id
+    finally:
+        db.close()
+
+    res_img = client.get(f"/api/images/{img_id}/prediction", headers=farmer["headers"])
+    assert res_img.status_code == 200
+    pred = res_img.json()["prediction"]
+    assert pred["predicted_soil_type"] == "sandy_soil"
+    assert pred["confidence"] == 0.0
+    assert pred["confidence_percentage"] == 0.0
+    assert pred["model_version"] is None
+    assert pred["best_epoch"] is None
+    assert pred["probabilities"] == {
+        "sandy_soil": 0.75,
+        "clay_soil": 0.0,
+        "red_soil": 0.0,
+        "black_soil": 0.0,
+    }
+
+    res_detail = client.get(f"/api/predictions/{rec_id}", headers=farmer["headers"])
+    assert res_detail.status_code == 200
+    detail = res_detail.json()
+    assert detail["confidence"] == 0.0
+    assert detail["confidence_percentage"] == 0.0
+    assert detail["model_version"] is None
+    assert detail["best_epoch"] is None
+
+
+def test_gradcam_endpoint_returns_overlay_and_enforces_ownership(client):
+    """Grad-CAM endpoint returns valid JPEG heatmap overlay and enforces farmer isolation."""
+    farmer_a = register_farmer(client, "GradCAM Farmer A", "gradcam.a@example.com")
+    farmer_b = register_farmer(client, "GradCAM Farmer B", "gradcam.b@example.com")
+
+    field_a = client.post("/api/fields", json={"name": "GradCAM Plot A"}, headers=farmer_a["headers"]).json()["id"]
+    img_a = client.post(
+        f"/api/fields/{field_a}/images",
+        files={"file": ("soil_sample.jpg", make_test_image_bytes(seed=321), "image/jpeg")},
+        headers=farmer_a["headers"],
+    ).json()["image"]["id"]
+
+    # 1. Authenticated owner retrieves Grad-CAM overlay
+    res = client.get(f"/api/images/{img_a}/gradcam", headers=farmer_a["headers"])
+    assert res.status_code == 200
+    assert res.headers["content-type"].startswith("image/jpeg")
+    assert res.headers["x-gradcam-predicted-class"] in DEFAULT_CLASSES
+    overlay_img = Image.open(io.BytesIO(res.content))
+    assert overlay_img.size == (224, 224)
+
+    # 2. Explicit target_class query parameter works
+    res_target = client.get(
+        f"/api/images/{img_a}/gradcam?target_class=red_soil",
+        headers=farmer_a["headers"],
+    )
+    assert res_target.status_code == 200
+    assert res_target.headers["x-gradcam-target-class"] == "red_soil"
+
+    # 3. Invalid target_class returns 422
+    res_bad_cls = client.get(
+        f"/api/images/{img_a}/gradcam?target_class=invalid_soil",
+        headers=farmer_a["headers"],
+    )
+    assert res_bad_cls.status_code == 422
+
+    # 4. IDOR protection: Farmer B receives 404, unauthenticated receives 401
+    assert client.get(f"/api/images/{img_a}/gradcam", headers=farmer_b["headers"]).status_code == 404
+    assert client.get(f"/api/images/{img_a}/gradcam").status_code == 401
+
+    # 5. Missing checkpoint returns 503
+    with patch.object(SoilClassifier, "load_model", side_effect=SoilModelError("Checkpoint missing")):
+        res_503 = client.get(f"/api/images/{img_a}/gradcam", headers=farmer_a["headers"])
+        assert res_503.status_code == 503

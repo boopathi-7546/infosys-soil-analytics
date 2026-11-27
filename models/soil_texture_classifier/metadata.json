@@ -1,0 +1,76 @@
+{
+  "model_name": "soil_texture_classifier",
+  "model_version": "soil_texture_efficientnet_b0_v1.0",
+  "architecture": "EfficientNet-B0 (PyTorch)",
+  "dataset": "A 92k Soil Texture Image Patch Dataset (Loam, Sand, Clay) (Zenodo 10.5281/zenodo.20404766)",
+  "dataset_version": "v3",
+  "license": "CC BY 4.0",
+  "training_date": "2026-11-27",
+  "random_seed": 42,
+  "best_epoch": 1,
+  "classes": [
+    "clay",
+    "loam",
+    "sand"
+  ],
+  "train_samples": 2520,
+  "val_samples": 540,
+  "test_samples": 540,
+  "metrics": {
+    "accuracy": 1.0,
+    "macro_precision": 1.0,
+    "macro_recall": 1.0,
+    "macro_f1": 1.0,
+    "confusion_matrix": [
+      [
+        180,
+        0,
+        0
+      ],
+      [
+        0,
+        180,
+        0
+      ],
+      [
+        0,
+        0,
+        180
+      ]
+    ],
+    "classification_report": {
+      "clay": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 180.0
+      },
+      "loam": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 180.0
+      },
+      "sand": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 180.0
+      },
+      "accuracy": 1.0,
+      "macro avg": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 540.0
+      },
+      "weighted avg": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 540.0
+      }
+    }
+  },
+  "limitations": "Visual surface texture classification from image patches; distinct from 6-class soil type and lab hydrometer testing."
+}

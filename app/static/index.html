@@ -757,6 +757,15 @@ dialog::backdrop {
   backdrop-filter: blur(2px);
 }
 
+/* Clickable Prediction Rows and Modal */
+.clickable-row {
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out;
+}
+.clickable-row:hover {
+  background-color: #F1EDE4 !important;
+}
+
 /* Mobile Bottom Navigation */
 .mobile-nav {
   display: none;
@@ -1506,6 +1515,41 @@ dialog::backdrop {
   </form>
 </dialog>
 
+<!-- AI Soil Classification Detail Modal Dialog -->
+<dialog id="predictionDetailDialog" style="max-width: 740px; width: 92%; padding: 0; border: none; border-radius: 12px; box-shadow: var(--shadow-lg); overflow: hidden;">
+  <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: #FAF8F5; border-bottom: 1px solid var(--border);">
+    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+      <h3 style="margin: 0; font-size: 18px; color: var(--primary);">🧠 AI Soil Classification Details</h3>
+      <span id="predModalRecordBadge" class="status-badge" style="background: #E2E8F0; color: #334155; font-family: monospace; font-weight: 700;">Record #--</span>
+    </div>
+    <button type="button" onclick="window.closePredictionDetailModal()" style="background: transparent; border: none; font-size: 22px; line-height: 1; cursor: pointer; color: var(--text-muted); padding: 4px 8px; border-radius: 4px;" aria-label="Close dialog">✕</button>
+  </div>
+  <div id="predModalContent" style="padding: 20px; max-height: calc(85vh - 130px); overflow-y: auto;">
+    <!-- Populated dynamically -->
+  </div>
+  <div style="display: flex; justify-content: flex-end; padding: 12px 20px; background: #FAF8F5; border-top: 1px solid var(--border);">
+    <button type="button" class="btn btn-outline" onclick="window.closePredictionDetailModal()">Close</button>
+  </div>
+</dialog>
+
+<!-- Laboratory Soil Test Detail Modal Dialog -->
+<dialog id="soilTestDetailDialog" style="max-width: 760px; width: 92%; padding: 0; border: none; border-radius: 12px; box-shadow: var(--shadow-lg); overflow: hidden;">
+  <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: #FAF8F5; border-bottom: 1px solid var(--border);">
+    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+      <h3 style="margin: 0; font-size: 18px; color: var(--primary);">📜 Laboratory Soil Test Details</h3>
+      <span id="soilTestModalNumberBadge" class="status-badge" style="background: #E8F5E9; color: var(--primary); font-weight: 700;">Test #--</span>
+      <span id="soilTestModalDbBadge" class="status-badge" style="background: #E2E8F0; color: #334155; font-family: monospace; font-weight: 600;">ID #--</span>
+    </div>
+    <button type="button" onclick="window.closeSoilTestDetailModal()" style="background: transparent; border: none; font-size: 22px; line-height: 1; cursor: pointer; color: var(--text-muted); padding: 4px 8px; border-radius: 4px;" aria-label="Close dialog">✕</button>
+  </div>
+  <div id="soilTestModalContent" style="padding: 20px; max-height: calc(85vh - 130px); overflow-y: auto;">
+    <!-- Populated dynamically -->
+  </div>
+  <div style="display: flex; justify-content: flex-end; padding: 12px 20px; background: #FAF8F5; border-top: 1px solid var(--border);">
+    <button type="button" class="btn btn-outline" onclick="window.closeSoilTestDetailModal()">Close</button>
+  </div>
+</dialog>
+
 <!-- Toast Notification Element -->
 <div id="toast" role="status"></div>
 
@@ -1755,11 +1799,12 @@ function clearAuthToken() {
 }
 
 function authImgUrl(url) {
-  if (!url) return '';
+  const safe = safeUrl(url);
+  if (!safe) return '';
   const token = getAuthToken();
-  if (!token) return url;
-  const sep = url.includes('?') ? '&' : '?';
-  return `${url}${sep}token=${encodeURIComponent(token)}`;
+  if (!token) return safe;
+  const sep = safe.includes('?') ? '&' : '?';
+  return `${safe}${sep}token=${encodeURIComponent(token)}`;
 }
 
 async function fetchApi(url, options = {}) {
@@ -1893,8 +1938,9 @@ function updateFarmerUI(farmer) {
     if (nameEl) nameEl.textContent = farmer.full_name;
     if (emailEl) emailEl.textContent = farmer.email;
     if (avatarEl) {
-      if (farmer.avatar_url) {
-        avatarEl.innerHTML = `<img src="${farmer.avatar_url}" alt="${farmer.full_name}" referrerpolicy="no-referrer" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+      const safeAvatar = safeUrl(farmer.avatar_url);
+      if (safeAvatar) {
+        avatarEl.innerHTML = `<img src="${escHtml(safeAvatar)}" alt="${escHtml(farmer.full_name)}" referrerpolicy="no-referrer" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
       } else {
         const parts = (farmer.full_name || 'Farmer').trim().split(/\s+/);
         const initials = (parts[0][0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
@@ -2130,6 +2176,8 @@ async function initApp() {
   setupNavigation();
   setupLanguageSwitcher();
   setupNewFarmDialog();
+  setupPredictionDetailDialog();
+  setupSoilTestDetailDialog();
   setupAuthEvents();
 
   // Check for Google OAuth callback parameters in URL
@@ -2285,6 +2333,545 @@ function setupNewFarmDialog() {
       showToast('Error registering farm: ' + err.message, 'error');
     }
   };
+}
+
+// ---------------------------------------------------------------------------
+// HTML escape helper — prevents XSS when inserting untrusted text into innerHTML
+// ---------------------------------------------------------------------------
+function escHtml(val) {
+  if (val == null) return '';
+  return String(val)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function safeUrl(url) {
+  if (!url) return '';
+  const trimmed = String(url).trim();
+  if (/^https?:\/\//i.test(trimmed) || (trimmed.startsWith('/') && !trimmed.startsWith('//'))) {
+    return trimmed;
+  }
+  return '';
+}
+
+function fmtNum(val, digits = 1) {
+  if (val == null || Number.isNaN(Number(val))) return 'Not recorded';
+  return Number(val).toFixed(digits);
+}
+
+function setupPredictionDetailDialog() {
+  const dlg = document.getElementById('predictionDetailDialog');
+  if (!dlg) return;
+
+  dlg.addEventListener('click', (e) => {
+    if (e.target === dlg) {
+      window.closePredictionDetailModal();
+    }
+  });
+
+  dlg.addEventListener('cancel', () => {
+    window.closePredictionDetailModal();
+  });
+}
+
+window.openPredictionDetailModal = async function(predictionId) {
+  const dlg = document.getElementById('predictionDetailDialog');
+  if (!dlg) return;
+
+  const badge = document.getElementById('predModalRecordBadge');
+  const content = document.getElementById('predModalContent');
+  if (badge) badge.textContent = `Record #${predictionId}`;
+  if (content) {
+    content.innerHTML = `
+      <div style="text-align: center; padding: 36px 20px; color: var(--text-muted);">
+        <div style="font-size: 32px; margin-bottom: 10px;">⏳</div>
+        <p style="font-size: 14px; font-weight: 600;">Loading prediction details...</p>
+      </div>
+    `;
+  }
+
+  if (typeof dlg.showModal === 'function') {
+    dlg.showModal();
+  } else {
+    dlg.setAttribute('open', '');
+  }
+
+  try {
+    let p = state.predictionsById ? state.predictionsById.get(predictionId) : null;
+    if (!p) {
+      p = await fetchApi(`/api/predictions/${predictionId}`);
+    }
+    if (!p) throw new Error('Prediction record not found');
+    renderPredictionModalContent(p);
+  } catch (err) {
+    if (content) {
+      content.innerHTML = `
+        <div style="background: #FEF2F2; border: 1px solid #FECACA; border-radius: 8px; padding: 18px; color: #991B1B; font-size: 13px; text-align: center;">
+          ⚠️ Failed to load prediction details: ${escHtml(err.message || 'Unknown error')}
+          <div style="margin-top: 12px;">
+            <button type="button" class="btn btn-sm btn-outline" onclick="window.openPredictionDetailModal(${Number(predictionId) || 0})">Retry</button>
+          </div>
+        </div>
+      `;
+    }
+  }
+};
+
+window.closePredictionDetailModal = function() {
+  const dlg = document.getElementById('predictionDetailDialog');
+  if (dlg) {
+    if (typeof dlg.close === 'function') {
+      dlg.close();
+    } else {
+      dlg.removeAttribute('open');
+    }
+  }
+};
+
+window.runImageSecondaryMl = async function(imageId, mode) {
+  const box = document.getElementById('predModalSecondaryMlBox');
+  if (!box) return;
+  const endpoint = mode === 'texture'
+    ? `/api/images/${Number(imageId)}/predict-texture`
+    : `/api/images/${Number(imageId)}/predict-deficiency`;
+  box.innerHTML = `<div style="font-size:12px; color:var(--text-muted); padding:6px;">Running ${mode === 'texture' ? 'Soil Texture' : 'Visible Plant Deficiency'} model...</div>`;
+  try {
+    const res = await fetchApi(endpoint, { method: 'POST' });
+    const label = mode === 'texture' ? res.predicted_texture : (res.display_label || res.predicted_class);
+    box.innerHTML = `
+      <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:10px 12px; font-size:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+          <b>${mode === 'texture' ? '🪨 Soil Texture' : '🌿 Visible Plant Deficiency'}: ${escHtml(String(label || '').replace(/_/g, ' '))}</b>
+          <div style="display:flex; gap:6px; align-items:center;">
+            <span class="status-badge yellow" style="font-size:10px;">Demonstration Model</span>
+            <span class="status-badge green">${Number(res.confidence_percentage || 0).toFixed(1)}%</span>
+          </div>
+        </div>
+        <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Model: <code>${escHtml(res.model_version || '')}</code></div>
+        <div style="font-size:11px; color:#92400E; margin-top:4px;">${escHtml(res.disclaimer || '')}</div>
+      </div>
+    `;
+  } catch (err) {
+    box.innerHTML = `<div style="font-size:12px; color:#991B1B; background:#FEF2F2; padding:8px; border-radius:6px;">${escHtml(err.message || 'Model unavailable')}</div>`;
+  }
+};
+
+function renderPredictionModalContent(p) {
+  const content = document.getElementById('predModalContent');
+  if (!content) return;
+
+  const farmMap = new Map((state.fields || []).map(f => [f.id, f.name]));
+  const plotName = p.field_name || farmMap.get(p.field_id) || `Plot #${p.field_id}`;
+  const formatName = (k) => (k || '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+  const probs = p.probabilities || {};
+  const standardClasses = ['alluvial_soil', 'black_soil', 'clay_soil', 'laterite_soil', 'red_soil', 'sandy_soil'];
+
+  const entries = standardClasses.map(cls => [cls, probs[cls] !== undefined ? probs[cls] : 0.0]);
+  entries.sort((a, b) => b[1] - a[1]);
+
+  content.innerHTML = `
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; align-items: start;">
+      <!-- Left Column: Soil Photo & Metadata -->
+      <div>
+        <div style="border-radius: 8px; overflow: hidden; border: 1px solid var(--border); background: #0F172A; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.06);">
+          ${p.image_id ? `
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2px; background: #1E293B;">
+              <div style="position: relative;">
+                <img src="${authImgUrl('/api/images/' + p.image_id + '/file')}" alt="Soil Photograph" style="width: 100%; height: 200px; object-fit: cover; display: block;" onerror="this.src=''; this.alt='Photograph unavailable';">
+                <span style="position: absolute; bottom: 6px; left: 6px; background: rgba(15,23,42,0.78); color: #fff; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px;">Original</span>
+              </div>
+              <div style="position: relative;">
+                <img src="${authImgUrl('/api/images/' + p.image_id + '/gradcam?target_class=' + encodeURIComponent(p.predicted_soil_type || ''))}" alt="Grad-CAM Attention Heatmap" style="width: 100%; height: 200px; object-fit: cover; display: block;" onerror="this.style.display='none';">
+                <span style="position: absolute; bottom: 6px; left: 6px; background: rgba(15,23,42,0.78); color: #FDE68A; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px;">🔥 Grad-CAM</span>
+              </div>
+            </div>
+            <div style="background: #F8FAFC; color: #475569; font-size: 11px; padding: 6px 10px; text-align: left; border-top: 1px solid #E2E8F0;">
+              <b>Grad-CAM Explainability:</b> Warm (red/yellow) regions highlight soil surface areas that most influenced EfficientNet-B0's classification.
+            </div>
+          ` : `
+            <div style="height: 180px; display: flex; align-items: center; justify-content: center; color: #fff; background: #64748B;">
+              📷 No photograph attached
+            </div>
+          `}
+        </div>
+
+        <!-- Metadata Card -->
+        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px; margin-top: 12px; font-size: 13px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px dashed #E2E8F0; padding-bottom: 6px;">
+            <span style="color: var(--text-muted);">Farm Plot:</span>
+            <span style="font-weight: 700; color: var(--primary);">${escHtml(plotName)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px dashed #E2E8F0; padding-bottom: 6px;">
+            <span style="color: var(--text-muted);">Prediction Date:</span>
+            <span style="font-weight: 600;">${new Date(p.created_at).toLocaleString()}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px dashed #E2E8F0; padding-bottom: 6px;">
+            <span style="color: var(--text-muted);">Model Architecture:</span>
+            <span style="font-family: monospace; font-weight: 600; color: #0F172A;">${escHtml(p.model_version || 'Not recorded')}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-muted);">Best Checkpoint:</span>
+            <span style="font-weight: 600;">Epoch #${p.best_epoch != null ? escHtml(String(p.best_epoch)) : 'Not recorded'}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Visual Prediction & Probability Distribution -->
+      <div>
+        <div style="background: #F4FBF7; border: 1px solid #A7F3D0; border-radius: 8px; padding: 14px 16px; margin-bottom: 16px;">
+          <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #047857; letter-spacing: 0.5px; margin-bottom: 4px;">
+            Predicted Visual Soil Category
+          </div>
+          <div style="font-size: 22px; font-weight: 800; color: var(--primary); display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
+            🌱 ${escHtml(formatName(p.predicted_soil_type))}
+            <span class="status-badge green" style="font-size: 13px; font-weight: 700;">${p.confidence_percentage}% Confidence</span>
+          </div>
+        </div>
+
+        <div>
+          <div style="font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+            <span>Complete Class Distribution</span>
+            <span style="font-size: 11px; font-weight: normal; color: var(--text-muted);">6 Classes • Softmax</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            ${entries.map(([cls, prob]) => {
+              const pct = (prob * 100).toFixed(1);
+              const isPredicted = cls === p.predicted_soil_type;
+              return `
+                <div style="background: ${isPredicted ? '#F0FDF4' : '#FFF'}; border: 1px solid ${isPredicted ? '#86EFAC' : '#E2E8F0'}; border-radius: 6px; padding: 8px 10px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 4px;">
+                    <span style="font-weight: ${isPredicted ? '700' : '500'}; color: ${isPredicted ? '#166534' : 'var(--text)'};">
+                      ${escHtml(formatName(cls))}
+                      ${isPredicted ? '<span style="font-size: 10px; background: #DCFCE7; color: #166534; padding: 1px 6px; border-radius: 4px; margin-left: 6px; font-weight: 700;">★ PREDICTED</span>' : ''}
+                    </span>
+                    <span style="font-weight: 700; color: ${isPredicted ? '#166534' : 'var(--text)'};">${pct}%</span>
+                  </div>
+                  <div style="width: 100%; height: 8px; background: #E2E8F0; border-radius: 4px; overflow: hidden;">
+                    <div style="width: ${pct}%; height: 100%; background: ${isPredicted ? 'var(--primary)' : '#94A3B8'}; border-radius: 4px; transition: width 0.3s ease;"></div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+        ${p.image_id ? `
+          <div style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed #CBD5E1;">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;">
+              <button type="button" class="btn btn-outline btn-sm" onclick="window.runImageSecondaryMl(${Number(p.image_id)}, 'texture')">
+                🪨 Classify Soil Texture
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="window.runImageSecondaryMl(${Number(p.image_id)}, 'deficiency')">
+                🌿 Detect Visible Plant Deficiency
+              </button>
+            </div>
+            <div id="predModalSecondaryMlBox"></div>
+          </div>
+        ` : ''}
+      </div>
+    </div>
+
+    <!-- Scientific Accuracy Disclaimer Box -->
+    <div style="margin-top: 20px; background: #FFFBEB; border: 1px solid #FCD34D; border-radius: 8px; padding: 12px 16px; font-size: 12px; line-height: 1.5; color: #92400E;">
+      <div style="font-weight: 700; display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+        🔬 Scientific Note & Analytical Boundary
+      </div>
+      EfficientNet-B0 predicts visual surface soil categories based on optical morphology, hue, and surface texture from photograph pixels. It does <b>not</b> directly measure chemical nutrients (Nitrogen, Phosphorus, Potassium), pH, electrical conductivity, or organic carbon. Quantitative nutrient assessment and crop fertilizer advisory require certified laboratory soil testing (available in the <b>Soil Test</b> section).
+    </div>
+  `;
+}
+
+function setupSoilTestDetailDialog() {
+  const dlg = document.getElementById('soilTestDetailDialog');
+  if (!dlg) return;
+
+  dlg.addEventListener('click', (e) => {
+    if (e.target === dlg) {
+      window.closeSoilTestDetailModal();
+    }
+  });
+
+  dlg.addEventListener('cancel', () => {
+    window.closeSoilTestDetailModal();
+  });
+}
+
+window.openSoilTestDetailModal = async function(testId) {
+  const dlg = document.getElementById('soilTestDetailDialog');
+  if (!dlg) return;
+
+  const numBadge = document.getElementById('soilTestModalNumberBadge');
+  const dbBadge = document.getElementById('soilTestModalDbBadge');
+  const content = document.getElementById('soilTestModalContent');
+
+  if (numBadge) numBadge.textContent = `Test #${testId}`;
+  if (dbBadge) dbBadge.textContent = `ID #${testId}`;
+  if (content) {
+    content.innerHTML = `
+      <div style="text-align: center; padding: 36px 20px; color: var(--text-muted);">
+        <div style="font-size: 32px; margin-bottom: 10px;">⏳</div>
+        <p style="font-size: 14px; font-weight: 600;">Loading laboratory soil test details & advisory...</p>
+      </div>
+    `;
+  }
+
+  if (typeof dlg.showModal === 'function') {
+    dlg.showModal();
+  } else {
+    dlg.setAttribute('open', '');
+  }
+
+  try {
+    let t = state.soilTestsById ? state.soilTestsById.get(testId) : null;
+    if (!t) {
+      t = await fetchApi(`/api/soil-tests/${testId}`);
+    }
+    if (!t) throw new Error('Soil test record not found');
+
+    const displayNum = t.test_number || t.display_id || t.id;
+    if (numBadge) numBadge.textContent = `Test #${displayNum}`;
+    if (dbBadge) dbBadge.textContent = `ID #${t.id}`;
+
+    // Fetch advisory specifically for this historical soil test
+    let advisory = null;
+    try {
+      advisory = await fetchApi(`/api/soil-tests/${testId}/advisory`);
+    } catch (advErr) {
+      console.warn('Advisory fetch failed for test #' + testId, advErr);
+    }
+
+    renderSoilTestModalContent(t, advisory);
+  } catch (err) {
+    if (content) {
+      content.innerHTML = `
+        <div style="background: #FEF2F2; border: 1px solid #FECACA; border-radius: 8px; padding: 18px; color: #991B1B; font-size: 13px; text-align: center;">
+          ⚠️ Failed to load soil test details: ${escHtml(err.message || 'Unknown error')}
+          <div style="margin-top: 12px;">
+            <button type="button" class="btn btn-sm btn-outline" onclick="window.openSoilTestDetailModal(${Number(testId) || 0})">Retry</button>
+          </div>
+        </div>
+      `;
+    }
+  }
+};
+
+window.closeSoilTestDetailModal = function() {
+  const dlg = document.getElementById('soilTestDetailDialog');
+  if (dlg) {
+    if (typeof dlg.close === 'function') {
+      dlg.close();
+    } else {
+      dlg.removeAttribute('open');
+    }
+  }
+};
+
+function renderSoilTestModalContent(t, advisory) {
+  const content = document.getElementById('soilTestModalContent');
+  if (!content) return;
+
+  const farmMap = new Map((state.fields || []).map(f => [f.id, f.name]));
+  const plotName = t.field_name || farmMap.get(t.field_id) || `Plot #${t.field_id}`;
+  const displayNum = t.test_number || t.display_id || t.id;
+
+  const getRating = (val, low, high, lowDesc, medDesc, highDesc) => {
+    if (val < low) return { text: 'Low (' + lowDesc + ')', cls: 'red' };
+    if (val > high) return { text: 'High (' + highDesc + ')', cls: 'green' };
+    return { text: 'Medium (' + medDesc + ')', cls: 'yellow' };
+  };
+
+  const nRating = getRating(t.nitrogen, 100, 280, '< 100 kg/ha', '100–280 kg/ha', '> 280 kg/ha');
+  const pRating = getRating(t.phosphorus, 20, 55, '< 20 kg/ha', '20–55 kg/ha', '> 55 kg/ha');
+  const kRating = getRating(t.potassium, 100, 280, '< 100 kg/ha', '100–280 kg/ha', '> 280 kg/ha');
+
+  const phStatus = t.ph < 5.5 ? { text: 'Strongly Acidic', cls: 'red' } :
+                   t.ph < 6.0 ? { text: 'Moderately Acidic', cls: 'yellow' } :
+                   t.ph <= 7.5 ? { text: 'Optimal / Neutral', cls: 'green' } :
+                   t.ph <= 8.0 ? { text: 'Moderately Alkaline', cls: 'yellow' } :
+                   { text: 'Strongly Alkaline', cls: 'red' };
+
+  const healthScore = t.health_score !== undefined && t.health_score !== null ? `${t.health_score} / 100` : 'Not recorded';
+
+  content.innerHTML = `
+    <!-- Top Meta Card -->
+    <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px 16px; margin-bottom: 16px;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; font-size: 13px;">
+        <div>
+          <span style="color: var(--text-muted); display: block; font-size: 11px; text-transform: uppercase; font-weight: 700;">Farm Plot</span>
+          <span style="font-weight: 700; color: var(--primary); font-size: 15px;">🌱 ${escHtml(plotName)}</span>
+        </div>
+        <div>
+          <span style="color: var(--text-muted); display: block; font-size: 11px; text-transform: uppercase; font-weight: 700;">Submission Date</span>
+          <span style="font-weight: 600;">${new Date(t.tested_at).toLocaleString()}</span>
+        </div>
+        <div>
+          <span style="color: var(--text-muted); display: block; font-size: 11px; text-transform: uppercase; font-weight: 700;">Soil Health Score</span>
+          <span class="status-badge green" style="font-size: 13px; font-weight: 700;">${healthScore}</span>
+        </div>
+        <div>
+          <span style="color: var(--text-muted); display: block; font-size: 11px; text-transform: uppercase; font-weight: 700;">Record Identification</span>
+          <span style="font-family: monospace; font-size: 12px;">Test #${displayNum} • DB #${t.id}</span>
+        </div>
+      </div>
+      ${t.notes ? `
+        <div style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed #CBD5E1; font-size: 12px; color: #475569;">
+          <b>Notes:</b> ${escHtml(t.notes)}
+        </div>
+      ` : ''}
+    </div>
+
+    <!-- Primary Laboratory Nutrient Analysis Table -->
+    <div style="margin-bottom: 18px;">
+      <div style="font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+        <span>Primary Soil Chemical Parameters</span>
+        <span class="status-badge green" style="font-size: 10px;">Recorded Soil Parameters</span>
+      </div>
+      <div class="table-responsive" style="border: 1px solid var(--border); border-radius: 8px; overflow: hidden;">
+        <table style="margin: 0; width: 100%;">
+          <thead style="background: #F8F6F0;">
+            <tr>
+              <th style="padding: 8px 12px; font-size: 12px;">Parameter</th>
+              <th style="padding: 8px 12px; font-size: 12px;">Stored Value</th>
+              <th style="padding: 8px 12px; font-size: 12px;">Unit</th>
+              <th style="padding: 8px 12px; font-size: 12px;">Rating / Status</th>
+              <th style="padding: 8px 12px; font-size: 12px;">Measurement Basis</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="padding: 8px 12px;"><b>Nitrogen (N)</b></td>
+              <td style="padding: 8px 12px; font-weight: 700;">${t.nitrogen}</td>
+              <td style="padding: 8px 12px;"><code>${escHtml(t.nitrogen_unit || 'kg/ha')}</code></td>
+              <td style="padding: 8px 12px;"><span class="status-badge ${nRating.cls}">${nRating.text}</span></td>
+              <td style="padding: 8px 12px; font-size: 11px; color: var(--text-muted);">${escHtml(t.n_method || 'Not recorded')}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 12px;"><b>Phosphorus (P)</b></td>
+              <td style="padding: 8px 12px; font-weight: 700;">${t.phosphorus}</td>
+              <td style="padding: 8px 12px;"><code>${escHtml(t.phosphorus_unit || 'kg/ha')}</code></td>
+              <td style="padding: 8px 12px;"><span class="status-badge ${pRating.cls}">${pRating.text}</span></td>
+              <td style="padding: 8px 12px; font-size: 11px; color: var(--text-muted);">${escHtml(t.p_method || 'Not recorded')}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 12px;"><b>Potassium (K)</b></td>
+              <td style="padding: 8px 12px; font-weight: 700;">${t.potassium}</td>
+              <td style="padding: 8px 12px;"><code>${escHtml(t.potassium_unit || 'kg/ha')}</code></td>
+              <td style="padding: 8px 12px;"><span class="status-badge ${kRating.cls}">${kRating.text}</span></td>
+              <td style="padding: 8px 12px; font-size: 11px; color: var(--text-muted);">${escHtml(t.k_method || 'Not recorded')}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 12px;"><b>Soil Reaction (pH)</b></td>
+              <td style="padding: 8px 12px; font-weight: 700;">${fmtNum(t.ph, 1)}</td>
+              <td style="padding: 8px 12px;"><code>pH scale</code></td>
+              <td style="padding: 8px 12px;"><span class="status-badge ${phStatus.cls}">${phStatus.text}</span></td>
+              <td style="padding: 8px 12px; font-size: 11px; color: var(--text-muted);">${escHtml(t.ph_method || 'Not recorded')}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 12px;"><b>Organic Matter (OM)</b></td>
+              <td style="padding: 8px 12px; font-weight: 700;">${fmtNum(t.organic_matter, 1)}</td>
+              <td style="padding: 8px 12px;"><code>%</code></td>
+              <td style="padding: 8px 12px;"><span class="status-badge ${t.organic_matter >= 2.0 ? 'green' : (t.organic_matter < 1.0 ? 'red' : 'yellow')}">${t.organic_matter >= 2.0 ? 'Adequate' : 'Low'}</span></td>
+              <td style="padding: 8px 12px; font-size: 11px; color: var(--text-muted);">Not recorded</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 12px;"><b>Soil Moisture</b></td>
+              <td style="padding: 8px 12px; font-weight: 700;">${fmtNum(t.moisture, 1)}</td>
+              <td style="padding: 8px 12px;"><code>%</code></td>
+              <td style="padding: 8px 12px;"><span class="status-badge ${t.moisture >= 25 && t.moisture <= 75 ? 'green' : 'yellow'}">${t.moisture >= 25 && t.moisture <= 75 ? 'Optimal' : (t.moisture < 25 ? 'Dry' : 'High')}</span></td>
+              <td style="padding: 8px 12px; font-size: 11px; color: var(--text-muted);">Not recorded</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Secondary / Optional Soil Parameters Card -->
+    <div style="background: #FFF; border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; margin-bottom: 18px;">
+      <div style="font-size: 12px; font-weight: 700; color: #475569; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">
+        Extended Analytical Metadata & Optional Parameters
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; font-size: 12px;">
+        <div style="padding: 8px; background: #F8FAFC; border-radius: 6px;">
+          <span style="color: var(--text-muted); display: block;">Electrical Conductivity (EC):</span>
+          <b>${t.electrical_conductivity !== undefined && t.electrical_conductivity !== null ? escHtml(String(t.electrical_conductivity)) + ' dS/m' : '<span style="color: var(--text-muted); font-style: italic;">Not recorded</span>'}</b>
+          <span style="font-size: 10px; color: var(--text-muted); display: block; margin-top: 2px;">Method: ${escHtml(t.ec_method || 'Not recorded')}</span>
+        </div>
+        <div style="padding: 8px; background: #F8FAFC; border-radius: 6px;">
+          <span style="color: var(--text-muted); display: block;">Organic Carbon (OC):</span>
+          <b>${t.organic_carbon !== undefined && t.organic_carbon !== null ? escHtml(String(t.organic_carbon)) + ' %' : '<span style="color: var(--text-muted); font-style: italic;">Not recorded</span>'}</b>
+          <span style="font-size: 10px; color: var(--text-muted); display: block; margin-top: 2px;">Notice: Unmeasured; not synthesized</span>
+        </div>
+        <div style="padding: 8px; background: #F8FAFC; border-radius: 6px;">
+          <span style="color: var(--text-muted); display: block;">Data Provenance:</span>
+          <b>${escHtml(t.data_provenance || 'User-entered record (unverified)')}</b>
+          <span style="font-size: 10px; color: var(--text-muted); display: block; margin-top: 2px;">Verification: ${t.verification_status ? escHtml(t.verification_status.replace(/_/g, ' ')) : 'Not recorded'}</span>
+        </div>
+        <div style="padding: 8px; background: #F8FAFC; border-radius: 6px;">
+          <span style="color: var(--text-muted); display: block;">Sampling & Method:</span>
+          <b>${escHtml(t.testing_method || 'Not recorded')}</b>
+          <span style="font-size: 10px; color: var(--text-muted); display: block; margin-top: 2px;">
+            Depth: ${t.sample_depth_cm != null ? escHtml(String(t.sample_depth_cm)) + ' cm' : 'Not recorded'} • Bulk Density: ${t.bulk_density != null ? escHtml(String(t.bulk_density)) + ' ' + escHtml(t.bulk_density_unit || 'g/cm3') : 'Not recorded'}
+          </span>
+        </div>
+        <div style="padding: 8px; background: #F8FAFC; border-radius: 6px;">
+          <span style="color: var(--text-muted); display: block;">Paired Soil Images:</span>
+          <b>${t.paired_image_ids && t.paired_image_ids.length > 0 ? t.paired_image_ids.map(id => '#' + Number(id)).join(', ') : '<span style="color: var(--text-muted); font-style: italic;">None paired</span>'}</b>
+          <span style="font-size: 10px; color: var(--text-muted); display: block; margin-top: 2px;">Collected: ${t.sample_collected_at ? new Date(t.sample_collected_at).toLocaleString() : 'Not recorded'}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Agronomic Advisory Specific to this Soil Test -->
+    <div style="background: #F4FBF7; border: 1px solid #A7F3D0; border-radius: 8px; padding: 14px 16px; margin-bottom: 16px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <h4 style="margin: 0; color: #047857; font-size: 14px;">🌱 Advisory for Test #${displayNum}</h4>
+        <span class="status-badge green" style="font-size: 11px;">Heuristic Rule Engine</span>
+      </div>
+
+      ${advisory ? `
+        <!-- Suitable Crops -->
+        <div style="margin-bottom: 12px;">
+          <div style="font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 6px;">Compatible Crops for these Parameters:</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+            ${(advisory.suitable_crops || []).map(c => `
+              <span class="status-badge green" style="font-size: 12px; padding: 3px 8px;">🌾 ${escHtml(c)}</span>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Actionable Recommendations -->
+        <div style="margin-bottom: 8px;">
+          <div style="font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 6px;">Corrective Agronomic Recommendations:</div>
+          <ul style="margin: 0; padding-left: 20px; font-size: 12px; line-height: 1.6; color: #1E293B;">
+            ${(advisory.recommendations || []).map(r => `<li>${escHtml(r)}</li>`).join('')}
+          </ul>
+        </div>
+
+        <!-- Agronomic Warnings if any -->
+        ${advisory.warnings && advisory.warnings.length > 0 ? `
+          <div style="background: #FEF3C7; border: 1px solid #FCD34D; border-radius: 6px; padding: 8px 12px; margin-top: 10px; font-size: 12px; color: #92400E;">
+            <b>⚠️ Agronomic Alerts:</b>
+            <ul style="margin: 4px 0 0 0; padding-left: 18px;">
+              ${advisory.warnings.map(w => `<li>${escHtml(w)}</li>`).join('')}
+            </ul>
+          </div>
+        ` : ''}
+      ` : `
+        <div style="color: var(--text-muted); font-size: 13px; padding: 8px 0;">
+          Advisory details currently unavailable for this record.
+        </div>
+      `}
+    </div>
+
+    <!-- Scientific Assurance & Non-Fabrication Notice -->
+    <div style="background: #FFFBEB; border: 1px solid #FCD34D; border-radius: 8px; padding: 10px 14px; font-size: 11px; line-height: 1.4; color: #92400E;">
+      <b>🔬 Scientific Assurance & Separation:</b> These parameters reflect recorded soil test entries. Visual CNN predictions (EfficientNet-B0) operate strictly on surface optical captures and do not directly measure chemical NPK or pH. Unrecorded laboratory values are explicitly preserved as "Not recorded" without algorithmic fabrication.
+    </div>
+  `;
 }
 
 function handleRoute() {
@@ -2461,7 +3048,7 @@ async function renderHome(container) {
                     <td><b>${t.phosphorus}</b></td>
                     <td><b>${t.potassium}</b></td>
                     <td><span class="status-badge ${t.ph >= 6.0 && t.ph <= 7.5 ? 'green' : (t.ph < 5.5 || t.ph > 8.0 ? 'red' : 'yellow')}">${t.ph.toFixed(1)}</span></td>
-                    <td><span class="status-badge green">${t.health_score || '–'} / 100</span></td>
+                    <td><span class="status-badge green">${t.health_score ?? '–'} / 100</span></td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -2562,6 +3149,10 @@ function renderAnalyze(container) {
           <button class="btn btn-secondary" id="btnStartCamera" type="button">
             ${t('btn_open_camera')}
           </button>
+          <label class="btn btn-outline" style="cursor: pointer;" title="Fallback rear camera capture for Android browsers">
+            📱 Rear Camera
+            <input type="file" id="mobileCameraInput" accept="image/jpeg,image/png,image/jpg" capture="environment" style="display: none;">
+          </label>
           <button class="btn btn-primary" id="btnSnapPhoto" type="button" style="display: none;">
             ${t('btn_capture')}
           </button>
@@ -2617,20 +3208,41 @@ function renderAnalyze(container) {
       <form id="soilTestForm">
         <div class="form-grid">
           <div class="form-group">
-            <label class="form-label">${t('lbl_n')} (kg/ha) *</label>
-            <input type="number" step="any" min="0" max="500" name="nitrogen" class="form-input" required placeholder="e.g. 280">
+            <label class="form-label">${t('lbl_n')} *</label>
+            <div style="display: flex; gap: 6px;">
+              <input type="number" step="any" min="0" max="500" name="nitrogen" class="form-input" required placeholder="e.g. 280" style="flex: 1;">
+              <select name="nitrogen_unit" class="form-input" style="width: 92px;">
+                <option value="kg/ha" selected>kg/ha</option>
+                <option value="mg/kg">mg/kg</option>
+                <option value="ppm">ppm</option>
+              </select>
+            </div>
             <span class="form-hint">Standard Range: 0 - 500 kg/ha</span>
           </div>
 
           <div class="form-group">
-            <label class="form-label">${t('lbl_p')} (kg/ha) *</label>
-            <input type="number" step="any" min="0" max="150" name="phosphorus" class="form-input" required placeholder="e.g. 45">
+            <label class="form-label">${t('lbl_p')} *</label>
+            <div style="display: flex; gap: 6px;">
+              <input type="number" step="any" min="0" max="150" name="phosphorus" class="form-input" required placeholder="e.g. 45" style="flex: 1;">
+              <select name="phosphorus_unit" class="form-input" style="width: 92px;">
+                <option value="kg/ha" selected>kg/ha</option>
+                <option value="mg/kg">mg/kg</option>
+                <option value="ppm">ppm</option>
+              </select>
+            </div>
             <span class="form-hint">Standard Range: 0 - 150 kg/ha</span>
           </div>
 
           <div class="form-group">
-            <label class="form-label">${t('lbl_k')} (kg/ha) *</label>
-            <input type="number" step="any" min="0" max="800" name="potassium" class="form-input" required placeholder="e.g. 320">
+            <label class="form-label">${t('lbl_k')} *</label>
+            <div style="display: flex; gap: 6px;">
+              <input type="number" step="any" min="0" max="800" name="potassium" class="form-input" required placeholder="e.g. 320" style="flex: 1;">
+              <select name="potassium_unit" class="form-input" style="width: 92px;">
+                <option value="kg/ha" selected>kg/ha</option>
+                <option value="mg/kg">mg/kg</option>
+                <option value="ppm">ppm</option>
+              </select>
+            </div>
             <span class="form-hint">Standard Range: 0 - 800 kg/ha</span>
           </div>
 
@@ -2650,6 +3262,51 @@ function renderAnalyze(container) {
             <label class="form-label">${t('lbl_moisture')} (%) *</label>
             <input type="number" step="0.1" min="0" max="100" name="moisture" class="form-input" required placeholder="e.g. 35">
             <span class="form-hint">Optimal: 25% - 50%</span>
+          </div>
+        </div>
+
+        <!-- Optional ML-Ready Sampling & Verification Metadata -->
+        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px; margin: 14px 0 18px 0;">
+          <div style="font-size: 12px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 10px;">
+            Optional Sampling Metadata & Image Pairing (Recommended for Future ML)
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Testing Method</label>
+              <input type="text" name="testing_method" class="form-input" maxlength="100" placeholder="e.g. Olsen P / Alkaline KMnO4 / Field Kit">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Sample Depth (cm)</label>
+              <input type="number" step="0.1" min="0.1" max="300" name="sample_depth_cm" class="form-input" placeholder="e.g. 15">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Bulk Density</label>
+              <div style="display: flex; gap: 6px;">
+                <input type="number" step="0.01" min="0.2" max="3000" name="bulk_density" class="form-input" placeholder="e.g. 1.35" style="flex: 1;">
+                <select name="bulk_density_unit" class="form-input" style="width: 92px;">
+                  <option value="g/cm3" selected>g/cm3</option>
+                  <option value="kg/m3">kg/m3</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Sample Collection Date</label>
+              <input type="datetime-local" name="sample_collected_at" class="form-input">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Verification Status</label>
+              <select name="verification_status" class="form-input">
+                <option value="user_entered_unverified" selected>User-Entered (Unverified)</option>
+                <option value="laboratory_verified">Laboratory Verified</option>
+                <option value="field_sensor_estimate">Field Sensor Estimate</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Pair with Soil Image (Same Sample)</label>
+              <select name="image_id" id="pairSoilImageSelect" class="form-input">
+                <option value="">-- None (Do not pair) --</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -2725,6 +3382,28 @@ function bindAnalyzeEvents() {
   const btnSnap = document.getElementById('btnSnapPhoto');
   const btnRetake = document.getElementById('btnRetakePhoto');
   const btnUse = document.getElementById('btnUseCameraPhoto');
+  const mobileCamInput = document.getElementById('mobileCameraInput');
+
+  if (mobileCamInput) {
+    mobileCamInput.onchange = (e) => {
+      if (e.target.files && e.target.files[0]) {
+        const reader = new FileReader();
+        reader.onload = (re) => {
+          stopCamera();
+          state.capturedBase64 = re.target.result;
+          snapImg.src = state.capturedBase64;
+          snapImg.style.display = 'block';
+          video.style.display = 'none';
+          placeholder.style.display = 'none';
+          btnStart.style.display = 'none';
+          btnSnap.style.display = 'none';
+          btnRetake.style.display = 'inline-flex';
+          btnUse.style.display = 'inline-flex';
+        };
+        reader.readAsDataURL(e.target.files[0]);
+      }
+    };
+  }
 
   btnStart.onclick = async () => {
     try {
@@ -2802,18 +3481,44 @@ function bindAnalyzeEvents() {
   };
 
   // --- Soil Laboratory Test Form Handler ---
+  const pairSelect = document.getElementById('pairSoilImageSelect');
+  if (pairSelect && state.activeFieldId) {
+    fetchApi(`/api/fields/${state.activeFieldId}/images`).then((imgs) => {
+      const unpaired = (imgs || []).filter(img => img.soil_test_id == null);
+      pairSelect.innerHTML = '<option value="">-- None (Do not pair) --</option>' + unpaired.map(img =>
+        `<option value="${Number(img.id)}">Image #${Number(img.id)} (${escHtml(img.original_filename || img.original_format)})</option>`
+      ).join('');
+    }).catch(() => {});
+  }
+
   document.getElementById('soilTestForm').onsubmit = async (e) => {
     e.preventDefault();
     if (!state.activeFieldId) return;
 
     const fd = new FormData(e.target);
+    const rawDepth = fd.get('sample_depth_cm');
+    const rawBd = fd.get('bulk_density');
+    const rawCollectedAt = fd.get('sample_collected_at');
+    const rawImageId = fd.get('image_id');
+    const rawMethod = (fd.get('testing_method') || '').trim();
+
     const body = {
       nitrogen: parseFloat(fd.get('nitrogen')),
       phosphorus: parseFloat(fd.get('phosphorus')),
       potassium: parseFloat(fd.get('potassium')),
+      nitrogen_unit: fd.get('nitrogen_unit') || 'kg/ha',
+      phosphorus_unit: fd.get('phosphorus_unit') || 'kg/ha',
+      potassium_unit: fd.get('potassium_unit') || 'kg/ha',
       ph: parseFloat(fd.get('ph')),
       organic_matter: parseFloat(fd.get('organic_matter')),
       moisture: parseFloat(fd.get('moisture')),
+      testing_method: rawMethod || null,
+      sample_depth_cm: rawDepth ? parseFloat(rawDepth) : null,
+      bulk_density: rawBd ? parseFloat(rawBd) : null,
+      bulk_density_unit: rawBd ? (fd.get('bulk_density_unit') || 'g/cm3') : null,
+      sample_collected_at: rawCollectedAt ? new Date(rawCollectedAt).toISOString() : null,
+      verification_status: fd.get('verification_status') || 'user_entered_unverified',
+      image_id: rawImageId ? parseInt(rawImageId, 10) : null,
       notes: fd.get('notes') || null,
     };
 
@@ -2853,7 +3558,7 @@ function showPreprocessResult(imageId, warnings = []) {
   if (warnings && warnings.length > 0) {
     warnDiv.innerHTML = warnings.map(w => `
       <div style="background: var(--status-yellow-bg); color: var(--status-yellow); padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; margin-top: 6px;">
-        ⚠️ Image Quality Notice: ${w}
+        ⚠️ Image Quality Notice: ${escHtml(w)}
       </div>
     `).join('');
   } else {
@@ -2865,6 +3570,16 @@ function showPreprocessResult(imageId, warnings = []) {
   }
 
   // Trigger real-time CNN prediction
+  const pairSelect = document.getElementById('pairSoilImageSelect');
+  if (pairSelect && imageId) {
+    if (![...pairSelect.options].some(o => o.value === String(imageId))) {
+      const opt = document.createElement('option');
+      opt.value = String(Number(imageId));
+      opt.textContent = `Image #${Number(imageId)} (Current Capture)`;
+      pairSelect.appendChild(opt);
+    }
+    pairSelect.value = String(Number(imageId));
+  }
   runLivePrediction(imageId);
 }
 
@@ -2890,12 +3605,12 @@ async function runLivePrediction(imageId) {
           <div>
             <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #047857; letter-spacing: 0.5px;">Predicted Soil Type</span>
             <div style="font-size: 20px; font-weight: 800; color: var(--primary);">
-              🌱 ${formatName(pred.predicted_soil_type)}
+              🌱 ${escHtml(formatName(pred.predicted_soil_type))}
               <span class="status-badge green" style="font-size: 13px; margin-left: 8px;">${pred.confidence_percentage}% Confidence</span>
             </div>
           </div>
           <div style="text-align: right; font-size: 12px; color: var(--text-muted);">
-            <div><b>Model:</b> ${pred.model_version}</div>
+            <div><b>Model:</b> ${escHtml(pred.model_version)}</div>
             <div><b>Saved to DB:</b> Record #<code>${res.id}</code></div>
           </div>
         </div>
@@ -2909,7 +3624,7 @@ async function runLivePrediction(imageId) {
               return `
                 <div>
                   <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: ${isTop ? '700' : '500'}; color: ${isTop ? 'var(--primary)' : 'var(--text)'};">
-                    <span>${formatName(cls)} ${isTop ? '★ (Predicted)' : ''}</span>
+                    <span>${escHtml(formatName(cls))} ${isTop ? '★ (Predicted)' : ''}</span>
                     <span>${pct}%</span>
                   </div>
                   <div style="width: 100%; height: 6px; background: #E2E8F0; border-radius: 3px; overflow: hidden; margin-top: 2px;">
@@ -2920,13 +3635,23 @@ async function runLivePrediction(imageId) {
             }).join('')}
           </div>
         </div>
+
+        <div style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed #A7F3D0;">
+          <div style="font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 6px;">🔥 Grad-CAM Visual Attention Heatmap</div>
+          <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <img src="${authImgUrl('/api/images/' + Number(imageId) + '/gradcam?target_class=' + encodeURIComponent(pred.predicted_soil_type || ''))}" alt="Grad-CAM Attention Heatmap" style="width: 180px; height: 135px; object-fit: cover; border-radius: 6px; border: 1px solid #CBD5E1;" onerror="this.style.display='none';">
+            <p style="font-size: 11px; color: var(--text-muted); max-width: 360px; margin: 0; line-height: 1.45;">
+              Warm (red/yellow) regions indicate the surface texture and color areas on the soil photograph that contributed most to the <b>${escHtml(formatName(pred.predicted_soil_type))}</b> prediction.
+            </p>
+          </div>
+        </div>
       </div>
     `;
     showToast(`AI classified soil: ${formatName(pred.predicted_soil_type)} (${pred.confidence_percentage}%)`, 'success');
   } catch (err) {
     resultBox.innerHTML = `
       <div style="background: #FEF2F2; border: 1px solid #FECACA; border-radius: 8px; padding: 12px; color: #991B1B; font-size: 13px;">
-        ⚠️ AI prediction failed: ${err.message}
+        ⚠️ AI prediction failed: ${escHtml(err.message || 'Unknown error')}
         <button class="btn btn-sm btn-outline" style="margin-left: 8px;" onclick="runLivePrediction(${imageId})">Retry</button>
       </div>
     `;
@@ -2957,7 +3682,7 @@ function showSoilResults(test, advisory) {
       <!-- Health Score Card -->
       <div class="score-card">
         <div class="score-circle">
-          <span class="score-num">${test.health_score || advisory.health_score || 75}</span>
+          <span class="score-num">${test.health_score ?? advisory.health_score ?? '–'}</span>
           <span class="score-denom">/ 100</span>
         </div>
         <div>
@@ -3026,7 +3751,7 @@ function showSoilResults(test, advisory) {
       <div class="advisory-box">
         <h4>📋 Recommended Soil Management Practices</h4>
         <ul class="advisory-list">
-          ${advisory.recommendations.map(r => `<li>${r}</li>`).join('')}
+          ${advisory.recommendations.map(r => `<li>${escHtml(r)}</li>`).join('')}
         </ul>
       </div>
 
@@ -3039,18 +3764,53 @@ function showSoilResults(test, advisory) {
           ${advisory.suitable_crops.map(crop => `
             <div class="crop-card">
               <div class="crop-icon">🌱</div>
-              <div class="crop-name">${crop}</div>
+              <div class="crop-name">${escHtml(crop)}</div>
               <span class="crop-badge">High Compatibility</span>
             </div>
           `).join('')}
         </div>
       </div>
 
+      <div id="shapNutrientMlBox" style="margin-top: 16px;"></div>
+
       <p style="font-size: 11px; color: var(--text-muted); margin-top: 18px; font-style: italic;">
         ${t('disclaimer')}
       </p>
     </div>
   `;
+
+  // Fetch XGBoost + SHAP explanation for structured NPK inputs
+  const shapBox = document.getElementById('shapNutrientMlBox');
+  if (shapBox) {
+    fetchApi('/api/ml/predict-nutrient-fertility', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nitrogen: test.nitrogen,
+        phosphorus: test.phosphorus,
+        potassium: test.potassium,
+      }),
+    }).then((mlRes) => {
+      shapBox.innerHTML = `
+        <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+            <h4 style="margin:0; font-size:14px; color:var(--primary);">🤖 Structured ML Nutrient Fertility & SHAP Explanation</h4>
+            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+              <span class="status-badge yellow" style="font-size:10px;">Experimental • Not for Dosage</span>
+              <span class="status-badge green">${escHtml(mlRes.predicted_fertility_class)} (${Number(mlRes.confidence_percentage).toFixed(1)}%)</span>
+            </div>
+          </div>
+          <div style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">
+            Model: <code>${escHtml(mlRes.model_version)}</code> • Explainer: <code>${escHtml(mlRes.explainer)}</code>
+          </div>
+          <ul style="margin:0; padding-left:18px; font-size:12px; color:#1E293B; line-height:1.5;">
+            ${(mlRes.feature_contributions || []).map(fc => `<li>${escHtml(fc.explanation)}</li>`).join('')}
+          </ul>
+          <p style="font-size:11px; color:#92400E; margin:8px 0 0 0;">${escHtml(mlRes.disclaimer || '')}</p>
+        </div>
+      `;
+    }).catch(() => {});
+  }
 }
 
 // ============================================================================
@@ -3095,14 +3855,14 @@ async function renderFarms(container) {
             <div class="card" style="margin-bottom: 0; border: 1.5px solid ${f.id === state.activeFieldId ? 'var(--primary)' : 'var(--border)'};">
               <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
                 <div>
-                  <h4 style="font-size: 17px; font-weight: 700; color: var(--primary);">${f.name}</h4>
-                  <div style="font-size: 12px; color: var(--text-muted);">📍 ${f.location || 'Location Unspecified'}</div>
+                  <h4 style="font-size: 17px; font-weight: 700; color: var(--primary);">${escHtml(f.name)}</h4>
+                  <div style="font-size: 12px; color: var(--text-muted);">📍 ${escHtml(f.location || 'Location Unspecified')}</div>
                 </div>
                 ${f.id === state.activeFieldId ? '<span class="status-badge green">Active Field</span>' : ''}
               </div>
 
               <div style="background: var(--bg); padding: 12px; border-radius: 8px; margin-bottom: 14px; font-size: 13px;">
-                <div>Farmer: <b>${f.farmer_name || '–'}</b></div>
+                <div>Farmer: <b>${escHtml(f.farmer_name || '–')}</b></div>
                 <div>Recorded Tests: <b>${f.stats.total_soil_tests}</b></div>
                 <div>Soil Photos: <b>${f.stats.total_images}</b></div>
                 <div>Registered: <b>${new Date(f.created_at).toLocaleDateString()}</b></div>
@@ -3151,6 +3911,39 @@ window.setHistoryFilter = (mode) => {
   renderHistory(document.getElementById('mainContent'));
 };
 
+window.runDegradationForecast = async (e) => {
+  e.preventDefault();
+  const box = document.getElementById('degradationForecastBox');
+  if (!box) return;
+  const fd = new FormData(e.target);
+  const body = {
+    baseline_oc: parseFloat(fd.get('baseline_oc')),
+    horizon_years: parseFloat(fd.get('horizon_years')),
+    ph: fd.get('ph') ? parseFloat(fd.get('ph')) : null,
+  };
+  box.innerHTML = '<span style="font-size:12px; color:var(--text-muted);">Running time-aware ML forecast...</span>';
+  try {
+    const res = await fetchApi('/api/ml/predict-degradation-risk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const badgeCls = res.risk_level === 'high' ? 'red' : (res.risk_level === 'moderate' ? 'yellow' : 'green');
+    box.innerHTML = `
+      <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:12px; font-size:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px;">
+          <b>${escHtml(res.label)} (${Number(res.horizon_years).toFixed(1)} yrs)</b>
+          <span class="status-badge ${badgeCls}">${escHtml(res.risk_level.toUpperCase())} RISK (${(Number(res.soc_decline_probability) * 100).toFixed(1)}%)</span>
+        </div>
+        <div>${escHtml(res.explanation)}</div>
+        <div style="font-size:11px; color:#92400E; margin-top:4px;">Model: <code>${escHtml(res.model_version)}</code> • ${escHtml(res.disclaimer)}</div>
+      </div>
+    `;
+  } catch (err) {
+    box.innerHTML = `<div style="font-size:12px; color:#991B1B; background:#FEF2F2; padding:8px; border-radius:6px;">${escHtml(err.message || 'Forecast unavailable')}</div>`;
+  }
+};
+
 window.runPredictionFromHistory = async (imageId) => {
   try {
     showToast('Running live CNN soil classification...', 'info');
@@ -3166,6 +3959,7 @@ async function renderHistory(container) {
   let tests = [];
   let images = [];
   let predictions = [];
+  let trends = null;
   const isAllFarms = state.historyFilter === 'all';
   const activeFarm = (state.fields || []).find(f => f.id === state.activeFieldId);
 
@@ -3174,17 +3968,46 @@ async function renderHistory(container) {
       tests = await fetchApi('/api/soil-tests');
       images = await fetchApi('/api/images');
       predictions = await fetchApi('/api/predictions');
+      trends = await fetchApi('/api/soil-tests/trends');
     } else {
       tests = await fetchApi(`/api/fields/${state.activeFieldId}/soil-tests`);
       images = await fetchApi(`/api/fields/${state.activeFieldId}/images`);
       predictions = await fetchApi(`/api/fields/${state.activeFieldId}/predictions`);
+      trends = await fetchApi(`/api/soil-tests/trends?field_id=${encodeURIComponent(state.activeFieldId)}`);
     }
   } catch (e) {
     console.warn('Error loading soil history:', e);
   }
 
+  const renderTrendSparkline = (points) => {
+    if (!points || points.length < 2) return '';
+    const vals = points.map(pt => Number(pt.value));
+    const minV = Math.min(...vals);
+    const maxV = Math.max(...vals);
+    const span = maxV - minV || 1;
+    const w = 160;
+    const h = 38;
+    const pad = 4;
+    const coords = vals.map((v, idx) => {
+      const x = pad + (idx / (vals.length - 1)) * (w - pad * 2);
+      const y = h - pad - ((v - minV) / span) * (h - pad * 2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    });
+    return `
+      <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="display:block; margin-top:6px;" aria-label="Historical trend chart">
+        <polyline fill="none" stroke="var(--primary)" stroke-width="2" points="${coords.join(' ')}" />
+        ${coords.map(c => {
+          const [cx, cy] = c.split(',');
+          return `<circle cx="${cx}" cy="${cy}" r="2.5" fill="var(--primary)" />`;
+        }).join('')}
+      </svg>
+    `;
+  };
+
   const farmMap = new Map((state.fields || []).map(f => [f.id, f.name]));
   const predByImg = new Map((predictions || []).map(p => [p.image_id, p]));
+  state.predictionsById = new Map((predictions || []).map(p => [p.id, p]));
+  state.soilTestsById = new Map((tests || []).map(t => [t.id, t]));
   const formatName = (k) => (k || '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
   container.innerHTML = `
@@ -3193,12 +4016,12 @@ async function renderHistory(container) {
         <div>
           <h3 class="card-title">📜 Historical Laboratory Soil Tests</h3>
           <p class="card-subtitle">
-            ${isAllFarms ? 'All recorded soil tests across your farms' : `Recorded soil tests for ${activeFarm ? activeFarm.name : 'selected plot'}`} • <b>${tests.length}</b> total record${tests.length === 1 ? '' : 's'} (newest first)
+            ${isAllFarms ? 'All recorded soil tests across your farms' : `Recorded soil tests for ${activeFarm ? escHtml(activeFarm.name) : 'selected plot'}`} • <b>${tests.length}</b> total record${tests.length === 1 ? '' : 's'} (newest first)
           </p>
         </div>
         <div style="display: flex; gap: 8px; align-items: center;">
           <button class="btn btn-sm ${!isAllFarms ? 'btn-secondary' : 'btn-outline'}" onclick="setHistoryFilter('active')" title="Show tests for current farm only">
-            ${activeFarm ? activeFarm.name : 'Current Farm'}
+            ${activeFarm ? escHtml(activeFarm.name) : 'Current Farm'}
           </button>
           <button class="btn btn-sm ${isAllFarms ? 'btn-secondary' : 'btn-outline'}" onclick="setHistoryFilter('all')" title="Show all tests across all your farms">
             All Farms (${state.fields.length})
@@ -3227,6 +4050,7 @@ async function renderHistory(container) {
                 <th>Organic Matter</th>
                 <th>Moisture</th>
                 <th>Health Score</th>
+                <th style="text-align: right;">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -3234,17 +4058,22 @@ async function renderHistory(container) {
                 const plotName = farmMap.get(t.field_id) || `Plot #${t.field_id}`;
                 const displayNum = t.test_number || t.display_id || t.id;
                 return `
-                <tr>
+                <tr class="clickable-row" onclick="window.openSoilTestDetailModal(${t.id})" title="Click to view details for Test #${displayNum}">
                   <td><span class="status-badge" style="background: #E8F5E9; color: var(--primary); font-weight: 700;">Test #${displayNum}</span></td>
-                  ${isAllFarms ? `<td><b>${plotName}</b></td>` : ''}
+                  ${isAllFarms ? `<td><b>${escHtml(plotName)}</b></td>` : ''}
                   <td>${new Date(t.tested_at).toLocaleString()}</td>
-                  <td><b>${t.nitrogen}</b> kg/ha</td>
-                  <td><b>${t.phosphorus}</b> kg/ha</td>
-                  <td><b>${t.potassium}</b> kg/ha</td>
+                  <td><b>${t.nitrogen}</b> ${escHtml(t.nitrogen_unit || 'kg/ha')}</td>
+                  <td><b>${t.phosphorus}</b> ${escHtml(t.phosphorus_unit || 'kg/ha')}</td>
+                  <td><b>${t.potassium}</b> ${escHtml(t.potassium_unit || 'kg/ha')}</td>
                   <td><span class="status-badge ${t.ph >= 6.0 && t.ph <= 7.5 ? 'green' : (t.ph < 5.5 || t.ph > 8.0 ? 'red' : 'yellow')}">${t.ph.toFixed(1)}</span></td>
                   <td>${t.organic_matter.toFixed(1)} %</td>
                   <td>${t.moisture.toFixed(1)} %</td>
-                  <td><span class="status-badge green">${t.health_score || '–'} / 100</span></td>
+                  <td><span class="status-badge green">${t.health_score ?? '–'} / 100</span></td>
+                  <td style="text-align: right;" onclick="event.stopPropagation()">
+                    <button type="button" class="btn btn-outline btn-sm" onclick="window.openSoilTestDetailModal(${t.id})" style="padding: 4px 10px; font-size: 12px; white-space: nowrap;">
+                      🔍 View Details
+                    </button>
+                  </td>
                 </tr>
               `}).join('')}
             </tbody>
@@ -3253,13 +4082,93 @@ async function renderHistory(container) {
       `}
     </div>
 
+    <!-- Historical Soil Trend Analysis Card -->
+    <div class="card">
+      <div class="card-header" style="flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;">
+        <div>
+          <h3 class="card-title">📈 Historical Soil Trends</h3>
+          <p class="card-subtitle">
+            ${trends ? escHtml(trends.message) : 'Historical parameter changes over time.'}
+            ${trends && trends.earliest_tested_at && trends.latest_tested_at ? ` • ${new Date(trends.earliest_tested_at).toLocaleDateString()} → ${new Date(trends.latest_tested_at).toLocaleDateString()}` : ''}
+          </p>
+        </div>
+        <span class="status-badge yellow" style="font-size: 11px; font-weight: 700;">
+          Historical Soil Trend Analysis – Not an ML Forecast
+        </span>
+      </div>
+
+      ${!trends || trends.status !== 'available' ? `
+        <div style="text-align: center; padding: 28px 16px; color: var(--text-muted); font-size: 13px;">
+          ${trends && trends.total_records === 1
+            ? 'Only 1 historical record found. At least 2 comparable soil tests are required to compute parameter changes.'
+            : 'At least 2 comparable historical soil tests are required to display chronological trends.'}
+        </div>
+      ` : `
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px;">
+          ${(trends.parameters || []).map(pt => {
+            const isComparable = pt.status === 'increasing' || pt.status === 'decreasing' || pt.status === 'stable';
+            const badgeCls = pt.status === 'increasing' ? 'green' : (pt.status === 'decreasing' ? 'yellow' : (pt.status === 'incompatible_units' ? 'red' : 'green'));
+            const sign = pt.change > 0 ? '+' : '';
+            return `
+              <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-bottom: 6px;">
+                  <b style="font-size: 13px; color: var(--text);">${escHtml(pt.label)}</b>
+                  <span class="status-badge ${badgeCls}" style="font-size: 10px;">${escHtml(pt.status.replace(/_/g, ' '))}</span>
+                </div>
+                ${isComparable ? `
+                  <div style="font-size: 12px; color: var(--text-muted);">
+                    ${pt.earliest_value} → <b>${pt.latest_value}</b> ${escHtml(pt.unit || '')}
+                  </div>
+                  <div style="font-size: 13px; font-weight: 700; color: var(--primary); margin-top: 2px;">
+                    ${sign}${pt.change} ${escHtml(pt.unit || '')}${pt.percent_change != null ? ` (${sign}${pt.percent_change}%)` : ''}
+                  </div>
+                  ${renderTrendSparkline(pt.points)}
+                ` : `
+                  <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                    ${escHtml(pt.note || 'Trend unavailable')}
+                  </div>
+                `}
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `}
+    </div>
+
+    <!-- ML Soil Degradation Forecast Card -->
+    <div class="card">
+      <div class="card-header" style="flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;">
+        <div>
+          <h3 class="card-title">🔮 ML Soil Degradation Forecast (Experimental)</h3>
+          <p class="card-subtitle">Experimental time-aware XGBoost SOC decline risk forecast — not a reliable future prediction (distinct from Historical Soil Trends)</p>
+        </div>
+        <span class="status-badge yellow" style="font-size: 11px; font-weight: 700;">Experimental ML Forecast • Not Reliable</span>
+      </div>
+      <form onsubmit="window.runDegradationForecast(event)" style="display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end;">
+        <div class="form-group" style="margin:0; min-width:150px;">
+          <label class="form-label" style="font-size:12px;">Baseline OC (%)</label>
+          <input type="number" step="0.1" min="0.1" max="100" name="baseline_oc" class="form-input" value="${tests.length > 0 ? Number(tests[0].organic_matter * 0.58).toFixed(2) : '1.5'}" required>
+        </div>
+        <div class="form-group" style="margin:0; min-width:130px;">
+          <label class="form-label" style="font-size:12px;">Horizon (Years)</label>
+          <input type="number" step="0.5" min="0.5" max="50" name="horizon_years" class="form-input" value="3" required>
+        </div>
+        <div class="form-group" style="margin:0; min-width:110px;">
+          <label class="form-label" style="font-size:12px;">Soil pH</label>
+          <input type="number" step="0.1" min="0" max="14" name="ph" class="form-input" value="${tests.length > 0 ? Number(tests[0].ph).toFixed(1) : '6.5'}">
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm">Run ML Forecast</button>
+      </form>
+      <div id="degradationForecastBox" style="margin-top:12px;"></div>
+    </div>
+
     <!-- AI Soil Predictions History Card -->
     <div class="card">
       <div class="card-header" style="flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;">
         <div>
           <h3 class="card-title">🧠 AI Soil Classification History (EfficientNet-B0)</h3>
           <p class="card-subtitle">
-            ${isAllFarms ? 'Live neural predictions across all plots' : `Predictions for ${activeFarm ? activeFarm.name : 'selected plot'}`} • <b>${predictions.length}</b> saved prediction${predictions.length === 1 ? '' : 's'} (stored in PostgreSQL)
+            ${isAllFarms ? 'Live neural predictions across all plots' : `Predictions for ${activeFarm ? escHtml(activeFarm.name) : 'selected plot'}`} • <b>${predictions.length}</b> saved prediction${predictions.length === 1 ? '' : 's'} (stored in PostgreSQL)
           </p>
         </div>
       </div>
@@ -3281,24 +4190,30 @@ async function renderHistory(container) {
                 <th>Confidence</th>
                 <th>Model Version</th>
                 <th>Prediction Timestamp</th>
+                <th style="text-align: right;">Action</th>
               </tr>
             </thead>
             <tbody>
               ${predictions.map(p => {
                 const plotName = p.field_name || farmMap.get(p.field_id) || `Plot #${p.field_id}`;
                 return `
-                <tr>
+                <tr class="clickable-row" onclick="window.openPredictionDetailModal(${p.id})" title="Click to view details for Record #${p.id}">
                   <td><code>#${p.id}</code></td>
                   <td>
                     ${p.image_id ? `<img src="${authImgUrl('/api/images/' + p.image_id + '/file')}" style="width: 44px; height: 44px; object-fit: cover; border-radius: 6px;" alt="Soil Capture">` : '–'}
                   </td>
-                  ${isAllFarms ? `<td><b>${plotName}</b></td>` : ''}
+                  ${isAllFarms ? `<td><b>${escHtml(plotName)}</b></td>` : ''}
                   <td>
-                    <span class="status-badge green" style="font-weight: 700;">🌱 ${formatName(p.predicted_soil_type)}</span>
+                    <span class="status-badge green" style="font-weight: 700;">🌱 ${escHtml(formatName(p.predicted_soil_type))}</span>
                   </td>
                   <td><b>${p.confidence_percentage}%</b></td>
-                  <td><span style="font-size: 11px; color: var(--text-muted);">${p.model_version}</span></td>
+                  <td><span style="font-size: 11px; color: var(--text-muted);">${escHtml(p.model_version || 'Not recorded')}</span></td>
                   <td>${new Date(p.created_at).toLocaleString()}</td>
+                  <td style="text-align: right;" onclick="event.stopPropagation()">
+                    <button type="button" class="btn btn-outline btn-sm" onclick="window.openPredictionDetailModal(${p.id})" style="padding: 4px 10px; font-size: 12px; white-space: nowrap;">
+                      🔍 View Details
+                    </button>
+                  </td>
                 </tr>
               `}).join('')}
             </tbody>
@@ -3313,7 +4228,7 @@ async function renderHistory(container) {
         <div>
           <h3 class="card-title">📷 Field Soil Photograph Log</h3>
           <p class="card-subtitle">
-            ${isAllFarms ? 'All inspected captures across your farms' : `Photographs for ${activeFarm ? activeFarm.name : 'selected plot'}`} • <b>${images.length}</b> photograph${images.length === 1 ? '' : 's'}
+            ${isAllFarms ? 'All inspected captures across your farms' : `Photographs for ${activeFarm ? escHtml(activeFarm.name) : 'selected plot'}`} • <b>${images.length}</b> photograph${images.length === 1 ? '' : 's'}
           </p>
         </div>
       </div>
@@ -3328,8 +4243,8 @@ async function renderHistory(container) {
             <div style="border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: #FFF;">
               <img src="${authImgUrl(`/api/images/${img.id}/file`)}" style="width: 100%; height: 110px; object-fit: cover;" alt="Soil Capture">
               <div style="padding: 8px; font-size: 11px;">
-                <div style="font-weight: 700; color: var(--primary);">${img.original_format} • ${img.width}×${img.height}</div>
-                ${plotName ? `<div style="color: var(--primary-light); font-weight: 600; font-size: 10px;">📍 ${plotName}</div>` : ''}
+                <div style="font-weight: 700; color: var(--primary);">${escHtml(img.original_format)} • ${img.width}×${img.height}</div>
+                ${plotName ? `<div style="color: var(--primary-light); font-weight: 600; font-size: 10px;">📍 ${escHtml(plotName)}</div>` : ''}
                 <div style="color: var(--text-muted);">${new Date(img.uploaded_at).toLocaleDateString()}</div>
                 <div style="margin-top: 4px; display: flex; flex-direction: column; gap: 4px;">
                   <span class="status-badge ${img.blur_score >= 60 ? 'green' : 'yellow'}" style="font-size: 10px;">
@@ -3337,7 +4252,7 @@ async function renderHistory(container) {
                   </span>
                   ${pred ? `
                     <span class="status-badge green" style="font-size: 10px; font-weight: 700;" title="Confidence: ${pred.confidence_percentage}%">
-                      🌱 ${formatName(pred.predicted_soil_type)} (${pred.confidence_percentage}%)
+                      🌱 ${escHtml(formatName(pred.predicted_soil_type))} (${pred.confidence_percentage}%)
                     </span>
                   ` : `
                     <button class="btn btn-outline btn-sm" style="font-size: 10px; padding: 2px 4px; margin-top: 2px;" onclick="runPredictionFromHistory(${img.id})">
@@ -3404,7 +4319,7 @@ async function renderAdvisory(container) {
             ${(advisory ? advisory.suitable_crops : ['Rice', 'Maize', 'Groundnut']).map(c => `
               <div class="crop-card">
                 <div class="crop-icon">🌾</div>
-                <div class="crop-name">${c}</div>
+                <div class="crop-name">${escHtml(c)}</div>
                 <span class="crop-badge">High Compatibility</span>
               </div>
             `).join('')}
@@ -3415,7 +4330,7 @@ async function renderAdvisory(container) {
           <h4 style="color: var(--primary);">📋 Actionable Soil Improvement Guidance</h4>
           <ul class="advisory-list" style="margin-top: 10px;">
             ${(advisory ? advisory.recommendations : ['Maintain organic matter using farmyard compost.']).map(r => `
-              <li>${r}</li>
+              <li>${escHtml(r)}</li>
             `).join('')}
           </ul>
         </div>
@@ -3425,13 +4340,13 @@ async function renderAdvisory(container) {
         <div style="background: var(--status-yellow-bg); border: 1px solid var(--status-yellow); padding: 14px; border-radius: 8px; margin-top: 16px;">
           <h4 style="color: var(--status-yellow); font-size: 14px; margin-bottom: 4px;">⚠️ Agronomic Alerts</h4>
           <ul style="padding-left: 20px; font-size: 13px; color: #78350F;">
-            ${advisory.warnings.map(w => `<li>${w}</li>`).join('')}
+            ${advisory.warnings.map(w => `<li>${escHtml(w)}</li>`).join('')}
           </ul>
         </div>
       ` : ''}
 
       <div style="background: var(--bg); padding: 14px; border-radius: 8px; margin-top: 20px; font-size: 12px; color: var(--text-muted);">
-        <b>Scientific Assurance:</b> Crop suitability and nutrient enrichment actions are strictly generated using verified agronomic formulas (ICAR & TNAU soil test standards). No fabricated fertilizer dosages are provided.
+        <b>Scientific Assurance:</b> Crop suitability and nutrient enrichment actions are generated using indicative threshold-based agronomic heuristics. No fabricated fertilizer dosages are provided.
       </div>
     </div>
   `;
@@ -3473,8 +4388,8 @@ async function renderReports(container) {
           </div>
           <div style="text-align: right; font-size: 13px;">
             <div><b>Date:</b> ${new Date().toLocaleDateString()}</div>
-            <div><b>Plot:</b> ${activeFarm ? activeFarm.name : 'All Fields'}</div>
-            <div><b>Farmer:</b> ${activeFarm && activeFarm.farmer_name ? activeFarm.farmer_name : '–'}</div>
+            <div><b>Plot:</b> ${activeFarm ? escHtml(activeFarm.name) : 'All Fields'}</div>
+            <div><b>Farmer:</b> ${activeFarm && activeFarm.farmer_name ? escHtml(activeFarm.farmer_name) : '–'}</div>
           </div>
         </div>
 
@@ -3570,7 +4485,7 @@ window.exportTestsCsv = async () => {
       t.ph,
       t.organic_matter,
       t.moisture,
-      t.health_score || ''
+      t.health_score ?? ''
     ]);
     const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
 
@@ -3653,12 +4568,12 @@ async function renderModelAnalytics(container) {
       throw new Error('Metrics payload could not be loaded.');
     }
 
-    const testAcc = (metrics.accuracy * 100).toFixed(2);
-    const macroP = (metrics.macro_avg?.precision * 100).toFixed(2);
-    const macroR = (metrics.macro_avg?.recall * 100).toFixed(2);
-    const macroF1 = (metrics.macro_avg?.f1_score * 100).toFixed(2);
-    const testSamples = metrics.total_test_samples || 206;
-    const bestEpoch = metrics.best_epoch || 7;
+    const testAcc = metrics.accuracy != null ? (metrics.accuracy * 100).toFixed(2) : '–';
+    const macroP = metrics.macro_avg?.precision != null ? (metrics.macro_avg.precision * 100).toFixed(2) : '–';
+    const macroR = metrics.macro_avg?.recall != null ? (metrics.macro_avg.recall * 100).toFixed(2) : '–';
+    const macroF1 = metrics.macro_avg?.f1_score != null ? (metrics.macro_avg.f1_score * 100).toFixed(2) : '–';
+    const testSamples = metrics.total_test_samples ?? 'Not recorded';
+    const bestEpoch = metrics.best_epoch != null ? escHtml(String(metrics.best_epoch)) : 'Not recorded';
 
     const report = metrics.classification_report || {};
 
@@ -3886,7 +4801,7 @@ async function renderModelAnalytics(container) {
         <div style="font-size: 40px; margin-bottom: 12px;">⚠️</div>
         <h3 style="color: #D90429; margin-bottom: 8px;">Unable to Load AI Model Analytics</h3>
         <p style="color: var(--text-muted); font-size: 14px; max-width: 520px; margin: 0 auto 18px auto;">
-          ${err.message || 'The server could not retrieve the CNN evaluation metrics.'}
+          ${escHtml(err.message || 'The server could not retrieve the CNN evaluation metrics.')}
         </p>
         <button class="btn btn-primary" onclick="renderModelAnalytics(document.getElementById('mainContent'))">
           🔄 Retry Loading

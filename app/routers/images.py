@@ -1,4 +1,5 @@
 import base64
+import math
 import re
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile, status
 from sqlalchemy import select
@@ -6,10 +7,11 @@ from sqlalchemy.orm import Session
 
 from .. import config
 from ..database import get_db
-from ..models import AnalysisResult, Farmer, Field, SoilImage
+from ..models import AnalysisResult, Farmer, Field, SoilImage, SoilTest
 from ..schemas import (
     Base64UploadIn,
     ImageOut,
+    ImagePairSoilTestIn,
     ImageUploadOut,
     PreprocessResult,
     PredictionHistoryItem,
@@ -34,7 +36,8 @@ def _get_farmer_image_or_404(image_id: int, current_farmer: Farmer, db: Session)
     obj = db.get(SoilImage, image_id)
     if not obj:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
-    if obj.field and obj.field.farmer_id is not None and obj.field.farmer_id != current_farmer.id:
+    # Strictly require positive ownership match — treat unclaimed (farmer_id IS NULL) as inaccessible
+    if not obj.field or obj.field.farmer_id != current_farmer.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
     return obj
 
@@ -52,13 +55,13 @@ async def upload_image_for_field(
     max_bytes = config.MAX_UPLOAD_MB * 1024 * 1024
     raw = await file.read(max_bytes + 1)
     if len(raw) > max_bytes:
-        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail=f"Image exceeds maximum upload size of {config.MAX_UPLOAD_MB}MB")
+        raise HTTPException(status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail=f"Image exceeds maximum upload size of {config.MAX_UPLOAD_MB}MB")
 
     try:
         result = validate_and_normalize(raw, file.content_type)
     except ImageValidationError as e:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY if "large" not in str(e) else status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT if "large" not in str(e) else status.HTTP_413_CONTENT_TOO_LARGE,
             detail=str(e),
         )
 
@@ -117,17 +120,17 @@ def upload_image_base64(
     try:
         raw_bytes = base64.b64decode(b64_content, validate=True)
     except Exception:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid base64 encoding")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Invalid base64 encoding")
 
     max_bytes = config.MAX_UPLOAD_MB * 1024 * 1024
     if len(raw_bytes) > max_bytes:
-        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail=f"Image exceeds maximum upload size of {config.MAX_UPLOAD_MB}MB")
+        raise HTTPException(status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail=f"Image exceeds maximum upload size of {config.MAX_UPLOAD_MB}MB")
 
     try:
         result = validate_and_normalize(raw_bytes, content_type)
     except ImageValidationError as e:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY if "large" not in str(e) else status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT if "large" not in str(e) else status.HTTP_413_CONTENT_TOO_LARGE,
             detail=str(e),
         )
 
@@ -195,6 +198,44 @@ def get_image_metadata(
     return _get_farmer_image_or_404(image_id, current_farmer, db)
 
 
+@router.post("/images/{image_id}/pair-soil-test", response_model=ImageOut)
+def pair_image_with_soil_test(
+    image_id: int,
+    body: ImagePairSoilTestIn,
+    current_farmer: Farmer = Depends(get_current_farmer),
+    db: Session = Depends(get_db),
+):
+    """Pair an existing soil image with a soil-test record from the same field."""
+    img = _get_farmer_image_or_404(image_id, current_farmer, db)
+    test = db.get(SoilTest, body.soil_test_id)
+    if not test or not test.field or test.field.farmer_id != current_farmer.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Soil test not found")
+    if img.field_id != test.field_id:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Soil image and soil test must belong to the same field",
+        )
+    if img.soil_test_id is not None and img.soil_test_id != test.id:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Soil image is already paired with another soil test",
+        )
+
+    img.soil_test_id = test.id
+    analyses = db.scalars(
+        select(AnalysisResult).where(
+            AnalysisResult.image_id == img.id,
+            AnalysisResult.soil_test_id.is_(None),
+        )
+    ).all()
+    for ar in analyses:
+        ar.soil_test_id = test.id
+
+    db.commit()
+    db.refresh(img)
+    return img
+
+
 @router.get("/images/{image_id}/file")
 def get_image_file(
     image_id: int,
@@ -219,7 +260,7 @@ def get_preprocessed_image(
 ):
     """Stream preprocessed image bytes (224x224) with ownership validation."""
     if not 32 <= size <= 1024:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="size must be between 32 and 1024")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="size must be between 32 and 1024")
     obj = _get_farmer_image_or_404(image_id, current_farmer, db)
     try:
         img = preprocessing.decode_bgr(storage.read_image(obj.file_path))
@@ -227,6 +268,56 @@ def get_preprocessed_image(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image file missing on disk")
     out = preprocessing.preprocess(img, size=size, bg_removal=background_removal)
     return Response(preprocessing.encode_jpeg(out), media_type="image/jpeg")
+
+
+@router.get("/images/{image_id}/gradcam")
+def get_image_gradcam(
+    image_id: int,
+    target_class: str | None = Query(default=None, description="Optional soil class name to explain"),
+    alpha: float = Query(default=0.45, ge=0.0, le=1.0, description="Heatmap overlay opacity"),
+    current_farmer: Farmer = Depends(get_current_farmer),
+    db: Session = Depends(get_db),
+):
+    """Generate a Grad-CAM attention heatmap overlay for an uploaded soil image."""
+    obj = _get_farmer_image_or_404(image_id, current_farmer, db)
+    try:
+        raw_bytes = storage.read_image(obj.file_path)
+    except FileNotFoundError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image file missing on disk")
+
+    classifier = get_soil_classifier()
+    try:
+        overlay_bytes, meta = classifier.generate_gradcam(
+            raw_bytes,
+            target_class=target_class,
+            alpha=alpha,
+        )
+    except ValueError as ve:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(ve))
+    except SoilModelError as sme:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Soil classification model unavailable: {sme}",
+        )
+    except InvalidImagePredictionError as ipe:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"Invalid or unreadable image data: {ipe}",
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Grad-CAM generation failure: {exc}",
+        )
+
+    return Response(
+        overlay_bytes,
+        media_type="image/jpeg",
+        headers={
+            "X-GradCAM-Target-Class": meta["target_class"],
+            "X-GradCAM-Predicted-Class": meta["predicted_soil_type"],
+        },
+    )
 
 
 @router.get("/images/{image_id}/preprocess", response_model=PreprocessResult)
@@ -284,7 +375,7 @@ def predict_soil_image(
         )
     except InvalidImagePredictionError as ipe:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Invalid or unreadable image data: {ipe}",
         )
     except Exception as exc:
@@ -313,6 +404,46 @@ def predict_soil_image(
     )
 
 
+def _safe_float(val: object, default: float = 0.0) -> float:
+    """Safely convert JSON value to a finite float, rejecting booleans and invalid types."""
+    if val is None or isinstance(val, bool):
+        return default
+    try:
+        num = float(val)
+    except (TypeError, ValueError):
+        return default
+    return num if math.isfinite(num) else default
+
+
+def _normalize_prediction_result(raw_result: object) -> dict | None:
+    """Validate and normalize stored JSONB prediction data; return None if missing or null."""
+    if not isinstance(raw_result, dict):
+        return None
+    soil_type = raw_result.get("predicted_soil_type")
+    if not isinstance(soil_type, str) or not soil_type.strip():
+        return None
+    probs = raw_result.get("probabilities")
+    safe_probs: dict[str, float] = {}
+    if isinstance(probs, dict):
+        for k, v in probs.items():
+            if isinstance(k, str):
+                safe_probs[k] = _safe_float(v, 0.0)
+    model_ver = raw_result.get("model_version")
+    normalized_model_ver = model_ver.strip() if isinstance(model_ver, str) and model_ver.strip() else None
+    raw_epoch = raw_result.get("best_epoch")
+    safe_epoch = raw_epoch if isinstance(raw_epoch, int) and not isinstance(raw_epoch, bool) else None
+    pred_type = raw_result.get("type")
+    return {
+        "predicted_soil_type": soil_type,
+        "confidence": _safe_float(raw_result.get("confidence"), 0.0),
+        "confidence_percentage": _safe_float(raw_result.get("confidence_percentage"), 0.0),
+        "probabilities": safe_probs,
+        "model_version": normalized_model_ver,
+        "best_epoch": safe_epoch,
+        "type": pred_type if isinstance(pred_type, str) and pred_type else "cnn_prediction",
+    }
+
+
 @router.get("/images/{image_id}/prediction", response_model=SoilPredictionOut)
 def get_image_prediction(
     image_id: int,
@@ -330,13 +461,17 @@ def get_image_prediction(
     if not analysis:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No prediction found for this image")
 
+    normalized = _normalize_prediction_result(analysis.result)
+    if not normalized:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Prediction data not found on analysis result")
+
     return SoilPredictionOut(
         id=analysis.id,
         field_id=analysis.field_id,
         image_id=analysis.image_id,
         soil_test_id=analysis.soil_test_id,
         created_at=analysis.created_at,
-        prediction=SoilPredictionData(**analysis.result),
+        prediction=SoilPredictionData(**normalized),
     )
 
 
@@ -364,8 +499,8 @@ def list_prediction_history(
     rows = db.execute(query).all()
     results: list[PredictionHistoryItem] = []
     for analysis, field_name in rows:
-        res = analysis.result or {}
-        if "predicted_soil_type" not in res:
+        normalized = _normalize_prediction_result(analysis.result)
+        if not normalized:
             continue
         results.append(
             PredictionHistoryItem(
@@ -374,15 +509,63 @@ def list_prediction_history(
                 field_name=field_name,
                 image_id=analysis.image_id,
                 created_at=analysis.created_at,
-                predicted_soil_type=res.get("predicted_soil_type", "unknown"),
-                confidence=res.get("confidence", 0.0),
-                confidence_percentage=res.get("confidence_percentage", 0.0),
-                probabilities=res.get("probabilities", {}),
-                model_version=res.get("model_version", "efficientnet_b0_v1.0"),
-                best_epoch=res.get("best_epoch"),
+                predicted_soil_type=normalized["predicted_soil_type"],
+                confidence=normalized["confidence"],
+                confidence_percentage=normalized["confidence_percentage"],
+                probabilities=normalized["probabilities"],
+                model_version=normalized["model_version"],
+                best_epoch=normalized["best_epoch"],
             )
         )
     return results
+
+
+@router.get("/predictions/{prediction_id}", response_model=PredictionHistoryItem)
+def get_prediction_detail(
+    prediction_id: int,
+    current_farmer: Farmer = Depends(get_current_farmer),
+    db: Session = Depends(get_db),
+):
+    """
+    Retrieve full details for a specific AI soil prediction record.
+    Strictly isolated: returns HTTP 404 if the record does not exist or belongs to another farmer.
+    """
+    row = db.execute(
+        select(AnalysisResult, Field.name.label("field_name"))
+        .join(Field, AnalysisResult.field_id == Field.id)
+        .where(
+            AnalysisResult.id == prediction_id,
+            Field.farmer_id == current_farmer.id,
+        )
+    ).first()
+
+    if not row:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Prediction record not found",
+        )
+
+    analysis, field_name = row
+    normalized = _normalize_prediction_result(analysis.result)
+    if not normalized:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Prediction data not found on analysis result",
+        )
+
+    return PredictionHistoryItem(
+        id=analysis.id,
+        field_id=analysis.field_id,
+        field_name=field_name,
+        image_id=analysis.image_id,
+        created_at=analysis.created_at,
+        predicted_soil_type=normalized["predicted_soil_type"],
+        confidence=normalized["confidence"],
+        confidence_percentage=normalized["confidence_percentage"],
+        probabilities=normalized["probabilities"],
+        model_version=normalized["model_version"],
+        best_epoch=normalized["best_epoch"],
+    )
 
 
 @router.get("/fields/{field_id}/predictions", response_model=list[PredictionHistoryItem])
