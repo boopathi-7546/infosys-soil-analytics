@@ -383,3 +383,38 @@ def test_google_user_data_isolation(mock_exchange, mock_user_info, client):
         headers={"Authorization": f"Bearer {token_b}"},
     )
     assert forbidden_res.status_code == 404
+
+
+@patch("app.routers.auth.get_google_user_info")
+@patch("app.routers.auth.exchange_code_for_tokens")
+def test_google_callback_browser_flow_preserves_redirect_uri_and_bridge(mock_exchange, mock_user_info, client):
+    """Browser GET /api/auth/google/url -> /api/auth/google/callback preserves redirect_uri and returns JWT bridge."""
+    url_res = client.get("/api/auth/google/url")
+    assert url_res.status_code == 200
+    auth_url = url_res.json()["url"]
+    assert "http%3A%2F%2Flocalhost%3A8000%2Fapi%2Fauth%2Fgoogle%2Fcallback" in auth_url
+
+    from urllib.parse import parse_qs, urlparse
+    state_val = parse_qs(urlparse(auth_url).query)["state"][0]
+
+    mock_exchange.return_value = {"access_token": "mock-browser-token"}
+    mock_user_info.return_value = {
+        "sub": "google-browser-123",
+        "name": "Browser Farmer",
+        "email": "browser.farmer@example.com",
+        "email_verified": True,
+    }
+
+    cb_res = client.get(f"/api/auth/google/callback?code=browser-code&state={state_val}")
+    assert cb_res.status_code == 200
+    assert "text/html" in cb_res.headers["content-type"]
+    assert "localStorage.setItem('soilsense_token'" in cb_res.text
+    assert "/?token=" in cb_res.text
+    mock_exchange.assert_called_once_with("browser-code", redirect_uri="http://localhost:8000/api/auth/google/callback")
+
+
+def test_google_auth_url_returns_503_when_secret_missing(client, monkeypatch):
+    """Missing GOOGLE_CLIENT_SECRET must fail fast with 503 on /api/auth/google/url."""
+    monkeypatch.setattr(config, "GOOGLE_CLIENT_SECRET", "")
+    res = client.get("/api/auth/google/url")
+    assert res.status_code == 503

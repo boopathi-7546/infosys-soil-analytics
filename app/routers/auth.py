@@ -194,10 +194,11 @@ def google_callback_get(
 
     try:
         # Step 1: CSRF state validation
-        verify_oauth_state(state)
+        state_payload = verify_oauth_state(state)
+        state_redirect_uri = state_payload.get("redirect_uri")
 
         # Step 2: Code exchange
-        tokens = exchange_code_for_tokens(code)
+        tokens = exchange_code_for_tokens(code, redirect_uri=state_redirect_uri)
         google_access_token = tokens.get("access_token")
         if not google_access_token:
             raise HTTPException(

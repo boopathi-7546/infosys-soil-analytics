@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+import math
 from pathlib import Path
 
 import torch
@@ -72,11 +73,50 @@ class PairedSample:
 
 
 def validate_paired_dataset(samples: list[PairedSample], min_required: int = 50) -> None:
-    if len(samples) < min_required:
+    """Validate that enough finite, same-field paired samples exist before training."""
+    valid_samples = [
+        s for s in samples
+        if len(s.tabular_values) == len(TABULAR_FEATURES)
+        and all(v is not None and math.isfinite(float(v)) for v in s.tabular_values)
+        and s.image_path.is_file()
+    ]
+    if len(valid_samples) < min_required:
         raise InsufficientPairedDataError(
-            f"Hybrid fusion training blocked: found {len(samples)} real paired (image, soil_test) "
+            f"Hybrid fusion training blocked: found {len(valid_samples)} valid real paired (image, soil_test) "
             f"samples with ground-truth labels, but at least {min_required} are required."
         )
+
+
+def extract_real_paired_samples(db, upload_dir: Path, label_by_soil_test_id: dict[int, int]) -> list[PairedSample]:
+    """Extract only genuine same-field paired (SoilImage, SoilTest) rows with verified labels."""
+    from sqlalchemy import select
+    from app.models import SoilImage, SoilTest
+
+    rows = db.execute(
+        select(SoilImage, SoilTest)
+        .join(SoilTest, SoilImage.soil_test_id == SoilTest.id)
+        .where(SoilImage.field_id == SoilTest.field_id)
+    ).all()
+
+    paired: list[PairedSample] = []
+    for img, test in rows:
+        if test.id not in label_by_soil_test_id:
+            continue
+        vals = [getattr(test, feat, None) for feat in TABULAR_FEATURES]
+        if any(v is None or not math.isfinite(float(v)) for v in vals):
+            continue
+        img_path = upload_dir / img.file_path
+        if not img_path.is_file():
+            continue
+        paired.append(
+            PairedSample(
+                image_path=img_path,
+                tabular_values=[float(v) for v in vals],
+                label=int(label_by_soil_test_id[test.id]),
+                field_id=int(test.field_id),
+            )
+        )
+    return paired
 
 
 def save_architecture_metadata() -> Path:

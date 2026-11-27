@@ -38,15 +38,17 @@ def is_google_auth_configured() -> bool:
     )
 
 
-def create_oauth_state() -> str:
+def create_oauth_state(redirect_uri: str | None = None) -> str:
     """Create a signed, time-limited JWT state token for CSRF defense."""
     now = datetime.now(timezone.utc)
-    payload = {
+    payload: dict[str, Any] = {
         "csrf": secrets.token_urlsafe(32),
         "type": "google_oauth_state",
         "iat": now,
         "exp": now + timedelta(minutes=15),
     }
+    if redirect_uri:
+        payload["redirect_uri"] = redirect_uri.strip()
     return jwt.encode(payload, config.JWT_SECRET_KEY, algorithm=config.JWT_ALGORITHM)
 
 
@@ -86,17 +88,17 @@ def get_google_auth_url(redirect_uri: str | None = None, state: str | None = Non
         (authorization_url, state_token)
     """
     client_id = config.GOOGLE_CLIENT_ID
-    if not client_id:
+    if not is_google_auth_configured():
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Google Sign-In is not configured on this server. Please set GOOGLE_CLIENT_ID in .env.",
+            detail="Google Sign-In is not configured on this server. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env.",
         )
 
     target_redirect_uri = (redirect_uri or config.GOOGLE_REDIRECT_URI).strip()
     if not target_redirect_uri:
         target_redirect_uri = "http://localhost:8000/api/auth/google/callback"
 
-    state_token = state or create_oauth_state()
+    state_token = state or create_oauth_state(redirect_uri=target_redirect_uri)
 
     params = {
         "client_id": client_id,

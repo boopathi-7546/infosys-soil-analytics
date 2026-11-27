@@ -16,7 +16,12 @@ from app.services.deficiency_detector import DeficiencyModelError, NutrientDefic
 from app.services.degradation_forecaster import DegradationForecasterService, DegradationModelError
 from app.services.nutrient_ml import NutrientMLModelError, NutrientMLService
 from app.services.soil_texture_classifier import SoilTextureClassifier, TextureModelError
-from ml.train_fusion_model import HybridSoilFusionNet, InsufficientPairedDataError, validate_paired_dataset
+from ml.train_fusion_model import (
+    HybridSoilFusionNet,
+    InsufficientPairedDataError,
+    PairedSample,
+    validate_paired_dataset,
+)
 
 
 @pytest.fixture()
@@ -164,6 +169,16 @@ def test_hybrid_fusion_architecture_and_status_endpoint(client):
 
     with pytest.raises(InsufficientPairedDataError):
         validate_paired_dataset([])
+
+    # Non-finite tabular values or missing image files must be filtered out safely
+    bad_sample = PairedSample(
+        image_path=Path("nonexistent_image.jpg"),
+        tabular_values=[100.0, float("nan"), 150.0, 6.5, 2.0, 35.0],
+        label=0,
+        field_id=1,
+    )
+    with pytest.raises(InsufficientPairedDataError):
+        validate_paired_dataset([bad_sample], min_required=1)
 
     farmer = _register_farmer(client, "Fusion Farmer", "fusion@example.com")
     assert client.get("/api/ml/hybrid-fusion/status").status_code == 401
